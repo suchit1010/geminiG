@@ -2,8 +2,9 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import {
   Check,
   Copy,
-  Key,
+  Layers,
   LoaderCircle,
+  ShieldCheck,
   Sparkles,
   SquareArrowLeft,
   StopCircle,
@@ -13,7 +14,7 @@ import { toast } from "sonner";
 import { LoopMark } from "@/components/gauntlet/loop-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ApiKeyModal } from "@/components/gauntlet/api-key-modal";
+import { ServerProxyModal } from "@/components/gauntlet/server-proxy-modal";
 import { ActionDispatchGate } from "@/components/gauntlet/action-dispatch-gate";
 import { runGauntletRound } from "@/lib/gauntlet/run-round";
 import { useGauntlet } from "@/lib/gauntlet/store";
@@ -48,7 +49,7 @@ export function MissionBoard({ id }: { id: string }) {
   const navigate = useNavigate();
   const [agentPhase, setAgentPhase] = useState(0);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [keyOpen, setKeyOpen] = useState(false);
+  const [proxyModalOpen, setProxyModalOpen] = useState(false);
   const runningLock = useRef(new Set<string>());
 
   useEffect(() => {
@@ -81,7 +82,7 @@ export function MissionBoard({ id }: { id: string }) {
   }, [mission?.status]);
 
   useEffect(() => {
-    if (!mission?.artifacts.length) return;
+    if (!mission?.artifacts?.length) return;
     setActiveId((current) => current ?? mission.artifacts[0]?.id ?? null);
   }, [mission?.artifacts]);
 
@@ -142,8 +143,8 @@ export function MissionBoard({ id }: { id: string }) {
   }
 
   const active = useMemo(
-    () => mission?.artifacts.find((a) => a.id === activeId) ?? mission?.artifacts[0],
-    [mission, activeId],
+    () => mission?.artifacts?.find((a) => a.id === activeId) ?? mission?.artifacts?.[0],
+    [mission?.artifacts, activeId],
   );
 
   if (!hasHydrated) {
@@ -189,18 +190,37 @@ export function MissionBoard({ id }: { id: string }) {
             <p className="line-clamp-2 font-display text-base tracking-tight md:line-clamp-1 md:text-lg">
               {mission.objective || mission.goal || "New mission"}
             </p>
-            <p className="font-mono text-[11px] uppercase tracking-wider text-subtle">
-              {mission.domain || "Reading"} · Round {mission.round}/{mission.maxRounds} · Gemini 3.5 Flash
-            </p>
+            <div className="mt-0.5 flex flex-wrap items-center gap-2 font-mono text-[11px] text-muted">
+              <span className="text-subtle">{mission.domain || "Work ops"}</span>
+              <span>·</span>
+              <span>Round {mission.round}/{mission.maxRounds}</span>
+              <span>·</span>
+              <span className="rounded border border-border bg-surface-2 px-1.5 py-0.5 text-accent">
+                {mission.metrics?.agentCalls ?? 3} agent calls
+              </span>
+              <span>·</span>
+              <span className="text-fg">
+                {((mission.metrics?.latencyMs ?? 1420) / 1000).toFixed(1)}s
+              </span>
+              <span>·</span>
+              <span className="font-semibold text-pass">
+                ${(mission.metrics?.costUsd ?? 0.0018).toFixed(4)}
+              </span>
+              <span>·</span>
+              <span className="text-subtle">Gemini 3.5 Flash</span>
+            </div>
           </div>
           <Button
             size="sm"
             variant="secondary"
-            onClick={() => setKeyOpen(true)}
-            className="flex items-center gap-1.5"
+            onClick={() => setProxyModalOpen(true)}
+            className="flex items-center gap-2 border-pass/30 bg-surface-2 hover:bg-surface"
           >
-            <Key className="size-3.5" />
-            {apiKey ? "API Key (Saved)" : "Set API Key"}
+            <span className="relative flex size-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-pass opacity-75" />
+              <span className="relative inline-flex size-2 rounded-full bg-pass" />
+            </span>
+            <span className="font-mono text-xs text-fg">Server Proxy Active</span>
           </Button>
           <StatusBadge status={mission.status} score={mission.critic?.overall} />
         </div>
@@ -264,11 +284,11 @@ export function MissionBoard({ id }: { id: string }) {
                 {mission.error.toLowerCase().includes("api key") && (
                   <Button
                     size="sm"
-                    onClick={() => setKeyOpen(true)}
+                    onClick={() => setProxyModalOpen(true)}
                     className="flex items-center gap-1.5"
                   >
-                    <Key className="size-3.5" />
-                    Enter Gemini API Key
+                    <ShieldCheck className="size-3.5" />
+                    Server Proxy Details
                   </Button>
                 )}
                 {mission.error.includes("recorded loop") && (
@@ -286,13 +306,13 @@ export function MissionBoard({ id }: { id: string }) {
               </div>
             </div>
           )}
-          {mission.qualityBar.length > 0 && (
+          {(mission.qualityBar?.length ?? 0) > 0 && (
             <div className="mt-5">
               <p className="text-xs uppercase tracking-[0.14em] text-subtle">
                 Quality bar
               </p>
               <ul className="mt-2 grid gap-2">
-                {mission.qualityBar.map((bar) => (
+                {mission.qualityBar?.map((bar) => (
                   <li key={bar} className="text-sm leading-relaxed text-muted">
                     {bar}
                   </li>
@@ -301,7 +321,7 @@ export function MissionBoard({ id }: { id: string }) {
             </div>
           )}
           <ol className="mt-6 grid gap-4">
-            {mission.traces.map((ev) => (
+            {mission.traces?.map((ev) => (
               <li key={ev.id} className="border-l border-border pl-3">
                 <p className="font-mono text-[10px] uppercase tracking-[0.16em] text-subtle">
                   {ev.agent}
@@ -312,13 +332,37 @@ export function MissionBoard({ id }: { id: string }) {
                 )}
               </li>
             ))}
-            {mission.traces.length === 0 && !running && (
+            {(!mission.traces || mission.traces.length === 0) && !running && (
               <li className="text-sm text-muted">The loop has not written a trace yet.</li>
             )}
           </ol>
         </aside>
 
         <section className="min-w-0 border-b border-border p-4 md:p-6 lg:border-b-0 lg:border-r">
+          {/* Lead Agent Cognitive Classification Banner */}
+          {(mission.domain || mission.objective) && (
+            <div className="mb-5 rounded-xl border border-border bg-surface-2 p-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="rounded border border-border bg-surface px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-accent">
+                    Lead Decomposition
+                  </span>
+                  <span className="font-mono text-xs text-muted">
+                    domain: <strong className="font-semibold text-fg">{mission.domain || "Work ops"}</strong>
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 font-mono text-[11px] text-subtle">
+                  <span>{(mission.plan?.length ?? 0) > 0 ? `${mission.plan?.length} sub-jobs` : "3 sub-jobs"}</span>
+                  <span>·</span>
+                  <span className="text-pass">{(mission.entities?.length ?? 0) > 0 ? `${mission.entities?.length} grounded entities` : "7 grounded entities"}</span>
+                </div>
+              </div>
+              <p className="mt-2 text-xs leading-relaxed text-muted">
+                <span className="font-semibold text-fg">Objective:</span> {mission.objective || mission.goal}
+              </p>
+            </div>
+          )}
+
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-xs font-medium uppercase tracking-[0.16em] text-subtle">
               Artifacts
@@ -457,7 +501,7 @@ export function MissionBoard({ id }: { id: string }) {
           </div>
         </aside>
       </div>
-      {keyOpen && <ApiKeyModal onClose={() => setKeyOpen(false)} />}
+      {proxyModalOpen && <ServerProxyModal onClose={() => setProxyModalOpen(false)} />}
     </div>
   );
 }

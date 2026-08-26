@@ -1,12 +1,12 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, ArrowUpRight, Key, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LoopMark } from "@/components/gauntlet/loop-mark";
 import { STARTERS } from "@/lib/gauntlet/starters";
 import { listMissions, useGauntlet } from "@/lib/gauntlet/store";
 import { Intake } from "@/components/gauntlet/intake";
-import { ApiKeyModal } from "@/components/gauntlet/api-key-modal";
+import { ServerProxyModal } from "@/components/gauntlet/server-proxy-modal";
 import type { Attachment } from "@/lib/gauntlet/types";
 
 const STEPS = [
@@ -38,8 +38,7 @@ export function Landing() {
     null,
   );
 
-  const [keyOpen, setKeyOpen] = useState(false);
-  const apiKey = useGauntlet((s) => s.apiKey);
+  const [proxyOpen, setProxyOpen] = useState(false);
 
   useEffect(() => {
     if (useGauntlet.persist.hasHydrated()) {
@@ -82,11 +81,14 @@ export function Landing() {
           <Button
             size="sm"
             variant="secondary"
-            onClick={() => setKeyOpen(true)}
-            className="flex items-center gap-1.5"
+            onClick={() => setProxyOpen(true)}
+            className="flex items-center gap-2 border-pass/30 bg-surface-2 hover:bg-surface"
           >
-            <Key className="size-3.5" />
-            {apiKey ? "API Key (Saved)" : "Set API Key"}
+            <span className="relative flex size-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-pass opacity-75" />
+              <span className="relative inline-flex size-2 rounded-full bg-pass" />
+            </span>
+            <span className="font-mono text-xs text-fg">Server Proxy Active</span>
           </Button>
           <Button size="sm" onClick={startBlank}>
             Start a mission
@@ -256,7 +258,7 @@ export function Landing() {
         />
       )}
 
-      {keyOpen && <ApiKeyModal onClose={() => setKeyOpen(false)} />}
+      {proxyOpen && <ServerProxyModal onClose={() => setProxyOpen(false)} />}
     </div>
   );
 }

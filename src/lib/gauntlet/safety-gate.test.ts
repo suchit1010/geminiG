@@ -1,6 +1,6 @@
-import { evaluateSafetyGate } from "./safety-gate";
-import type { ExtractedEntity } from "./types";
-import type { BuilderArtifact } from "./agents/builder";
+import { evaluateSafetyGate } from "./safety-gate.ts";
+import type { ExtractedEntity } from "./types.ts";
+import type { BuilderArtifact } from "./agents/builder.ts";
 
 console.log("=== Gauntlet v2 Action Safety Gate Verification ===");
 

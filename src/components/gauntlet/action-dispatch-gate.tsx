@@ -1,6 +1,7 @@
 import {
   Calendar,
   Check,
+  Edit3,
   ExternalLink,
   Mail,
   ShieldAlert,
@@ -12,9 +13,9 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  buildGmailComposeUrl,
-  buildGoogleCalendarUrl,
-} from "@/lib/gauntlet/tools/dispatch";
+  ActionReviewModal,
+  type ActionReviewPayload,
+} from "@/components/gauntlet/action-review-modal";
 import type { Mission } from "@/lib/gauntlet/types";
 
 type Props = {
@@ -23,6 +24,7 @@ type Props = {
 
 export function ActionDispatchGate({ mission }: Props) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [reviewPayload, setReviewPayload] = useState<ActionReviewPayload | null>(null);
 
   const safety = mission.safetyGate;
   const dispatch = mission.dispatch;
@@ -33,7 +35,7 @@ export function ActionDispatchGate({ mission }: Props) {
   const handleCopy = (id: string, text: string) => {
     void navigator.clipboard.writeText(text);
     setCopiedId(id);
-    toast.success("Copied to clipboard.");
+    toast.success("Copied.");
     setTimeout(() => setCopiedId(null), 2000);
   };
 
@@ -57,9 +59,14 @@ export function ActionDispatchGate({ mission }: Props) {
           </p>
         </div>
 
-        <Badge variant={safety?.passed ? "pass" : "warn"} className="font-mono text-xs">
-          {safety?.score ?? 100}% Grounded
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Badge variant={safety?.passed ? "pass" : "warn"} className="font-mono text-xs">
+            {safety?.score ?? 100}% Grounded
+          </Badge>
+          <span className="rounded border border-border bg-surface-2 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-subtle">
+            Confirm gate active
+          </span>
+        </div>
       </div>
 
       {/* ─── 2. ENTITY PROVENANCE PILLS ─── */}
@@ -97,7 +104,7 @@ export function ActionDispatchGate({ mission }: Props) {
                   Gmail Draft Proposal
                 </span>
               </div>
-              <span className="text-[11px] text-muted">Minimal Scope: gmail.compose</span>
+              <span className="text-[11px] text-muted">Review required · gmail.compose</span>
             </div>
 
             {dispatch.gmailDrafts.map((draft) => (
@@ -109,14 +116,14 @@ export function ActionDispatchGate({ mission }: Props) {
                 <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-fg whitespace-pre-line">
                   {draft.body}
                 </p>
-                <div className="mt-3 flex flex-wrap gap-2">
+                <div className="mt-3 flex flex-wrap items-center gap-2">
                   <Button
                     size="sm"
-                    onClick={() => window.open(buildGmailComposeUrl(draft), "_blank")}
-                    className="flex items-center gap-1.5"
+                    onClick={() => setReviewPayload({ type: "gmail", draft })}
+                    className="flex items-center gap-1.5 bg-accent text-accent-fg hover:bg-accent/90"
                   >
-                    <ExternalLink className="size-3.5" />
-                    Open Draft in Gmail
+                    <Edit3 className="size-3.5" />
+                    Review & Send Draft
                   </Button>
                   <Button
                     size="sm"
@@ -124,7 +131,7 @@ export function ActionDispatchGate({ mission }: Props) {
                     onClick={() => handleCopy(draft.id, `Subject: ${draft.subject}\n\n${draft.body}`)}
                   >
                     {copiedId === draft.id ? <Check className="size-3.5" /> : null}
-                    Copy Email Text
+                    Copy text
                   </Button>
                 </div>
               </div>
@@ -142,7 +149,7 @@ export function ActionDispatchGate({ mission }: Props) {
                   Google Calendar Holds
                 </span>
               </div>
-              <span className="text-[11px] text-muted">Minimal Scope: calendar.events</span>
+              <span className="text-[11px] text-muted">Review required · calendar.events</span>
             </div>
 
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
@@ -156,10 +163,10 @@ export function ActionDispatchGate({ mission }: Props) {
                     size="sm"
                     variant="secondary"
                     className="mt-3 w-full justify-center gap-1.5 text-xs"
-                    onClick={() => window.open(buildGoogleCalendarUrl(evt), "_blank")}
+                    onClick={() => setReviewPayload({ type: "calendar", event: evt })}
                   >
-                    <ExternalLink className="size-3" />
-                    Create Calendar Hold
+                    <Edit3 className="size-3" />
+                    Review & Create Hold
                   </Button>
                 </div>
               ))}
@@ -188,21 +195,39 @@ export function ActionDispatchGate({ mission }: Props) {
                 }
               >
                 {copiedId === "all_tasks" ? <Check className="size-3.5" /> : null}
-                Copy All Tasks
+                Copy all tasks
               </Button>
             </div>
 
             <ul className="mt-2.5 space-y-1.5">
               {dispatch.tasks.map((t, idx) => (
-                <li key={t.id} className="flex items-start gap-2 text-xs text-muted">
-                  <span className="mt-0.5 font-mono text-[10px] text-accent">{idx + 1}.</span>
-                  <span className="text-fg">{t.title}</span>
+                <li
+                  key={t.id}
+                  onClick={() => setReviewPayload({ type: "task", task: t })}
+                  className="group flex cursor-pointer items-start justify-between gap-2 rounded px-1.5 py-1 text-xs text-muted transition-colors hover:bg-surface hover:text-fg"
+                >
+                  <div className="flex items-start gap-2">
+                    <span className="mt-0.5 font-mono text-[10px] text-accent">{idx + 1}.</span>
+                    <span className="text-fg">{t.title}</span>
+                  </div>
+                  <span className="hidden font-mono text-[10px] text-subtle group-hover:inline">
+                    Review
+                  </span>
                 </li>
               ))}
             </ul>
           </div>
         )}
       </div>
+
+      {/* Review Modal Gate */}
+      {reviewPayload && (
+        <ActionReviewModal
+          payload={reviewPayload}
+          entityCount={entities.length}
+          onClose={() => setReviewPayload(null)}
+        />
+      )}
     </div>
   );
 }

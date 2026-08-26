@@ -112,6 +112,13 @@ export type Attachment = {
   preview: string; // data URL for thumbnail display
 };
 
+export type ExecutionMetrics = {
+  agentCalls: number;
+  latencyMs: number;
+  costUsd: number;
+  model: string;
+};
+
 export type Mission = {
   id: string;
   createdAt: number;
@@ -131,6 +138,7 @@ export type Mission = {
   critic: CriticReport | null;
   safetyGate: SafetyGateReport | null;
   dispatch: DispatchProposal | null;
+  metrics?: ExecutionMetrics | null;
   error: string | null;
   /** Image attachments for multimodal input */
   attachments: Attachment[];
@@ -146,5 +154,7 @@ export type RoundResult = {
   critic: CriticReport;
   safetyGate: SafetyGateReport;
   dispatch: DispatchProposal;
+  metrics?: ExecutionMetrics;
   traces: TraceEvent[];
 };
+

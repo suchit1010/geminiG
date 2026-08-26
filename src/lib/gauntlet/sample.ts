@@ -259,6 +259,12 @@ Best`,
         { id: "task_sample_3", title: "Nordic Goods billing export one-pager" },
       ],
     },
+    metrics: {
+      agentCalls: 3,
+      latencyMs: 1420,
+      costUsd: 0.0018,
+      model: "Gemini 3.5 Flash",
+    },
     error: null,
     attachments: [],
   };

@@ -249,8 +249,12 @@ export const runGauntletRound = createServerFn({ method: "POST" })
       at: Date.now(),
       agent: "dispatch",
       title: "Pending Confirm Gate",
-      detail: `${dispatch.gmailDrafts.length} Gmail draft(s), ${dispatch.calendarEvents.length} Calendar hold(s), ${dispatch.tasks.length} task(s) ready for 1-click dispatch.`,
+      detail: `${dispatch.gmailDrafts.length} Gmail draft(s), ${dispatch.calendarEvents.length} Calendar hold(s), ${dispatch.tasks.length} task(s) ready for review.`,
     });
+
+    const elapsedMs = Date.now() - ts;
+    // 3 agent calls (Lead + Builder + Critic) with approx 4k in + 2k out tokens on Gemini 3.5 Flash
+    const estimatedCostUsd = Math.round((0.000075 * 3.5 + 0.0003 * 2.0) * 10000) / 10000;
 
     // ─── ASSEMBLE 6-STAGE RESULT ─────────────────────────────────
     const result: RoundResult = {
@@ -266,6 +270,12 @@ export const runGauntletRound = createServerFn({ method: "POST" })
       critic,
       safetyGate,
       dispatch,
+      metrics: {
+        agentCalls: 3,
+        latencyMs: elapsedMs,
+        costUsd: estimatedCostUsd,
+        model: "Gemini 3.5 Flash",
+      },
       traces,
     };
 

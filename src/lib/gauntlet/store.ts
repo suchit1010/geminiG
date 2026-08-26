@@ -117,6 +117,7 @@ export const useGauntlet = create<GauntletState>()(
               critic: result.critic,
               safetyGate: result.safetyGate,
               dispatch: result.dispatch,
+              metrics: result.metrics,
               traces: [...current.traces, ...result.traces],
               error: null,
             },
@@ -142,7 +143,6 @@ export const useGauntlet = create<GauntletState>()(
     {
       name: "gauntlet-missions-v2",
       partialize: (s) => ({
-        apiKey: s.apiKey,
         missions: Object.fromEntries(
           Object.entries(s.missions).map(([k, m]) => [
             k,
