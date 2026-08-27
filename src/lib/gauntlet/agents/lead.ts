@@ -107,7 +107,7 @@ export async function runLead(opts: {
       systemInstruction: LEAD_SYSTEM,
       contents: [{ role: "user", parts }],
       temperature: 0.3,
-      maxOutputTokens: 4096,
+      maxOutputTokens: 2048,
       responseSchema: LEAD_SCHEMA,
     },
     opts.apiKey,
@@ -156,9 +156,7 @@ export async function runLead(opts: {
         entities,
       },
     };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Parse error";
-    console.error("[Lead Agent] Parse error:", msg, "Raw text:", res.text?.slice(0, 300));
-    return { ok: false, error: `Could not parse Lead agent output (${msg}). Try again.` };
+  } catch {
+    return { ok: false, error: "Could not parse Lead agent output. Run the loop again." };
   }
 }

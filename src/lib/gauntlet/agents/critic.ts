@@ -114,7 +114,7 @@ Score each artifact. Quote evidence. Be harsh — a tired human should not have 
       systemInstruction: CRITIC_SYSTEM,
       contents: [{ role: "user", parts: [{ text: userText }] }],
       temperature: 0.25,
-      maxOutputTokens: 4096,
+      maxOutputTokens: 2048,
       responseSchema: CRITIC_SCHEMA,
     },
     apiKey,
@@ -148,9 +148,7 @@ Score each artifact. Quote evidence. Be harsh — a tired human should not have 
         nextAction: String(raw.nextAction ?? "").slice(0, 400),
       },
     };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Parse error";
-    console.error("[Critic Agent] Parse error:", msg, "Raw text:", res.text?.slice(0, 300));
-    return { ok: false, error: `Could not parse Critic output (${msg}). Try again.` };
+  } catch {
+    return { ok: false, error: "Could not parse Critic output. Run the loop again." };
   }
 }

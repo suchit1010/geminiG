@@ -127,7 +127,7 @@ ${opts.previousArtifacts.map((a) => `[${a.jobId}] ${a.kind}: ${a.title}\n${a.bod
       systemInstruction: BUILDER_SYSTEM,
       contents: [{ role: "user", parts: [{ text: userText }] }],
       temperature: 0.45,
-      maxOutputTokens: 8192,
+      maxOutputTokens: 4096,
       responseSchema: BUILDER_SCHEMA,
     },
     opts.apiKey,
@@ -136,30 +136,8 @@ ${opts.previousArtifacts.map((a) => `[${a.jobId}] ${a.kind}: ${a.title}\n${a.bod
   if (!res.ok) return { ok: false, error: res.error! };
 
   try {
-    let artIn: Record<string, unknown>[] = [];
-
-    try {
-      const raw = extractJson(res.text!) as Record<string, unknown>;
-      if (Array.isArray(raw.artifacts)) {
-        artIn = raw.artifacts as Record<string, unknown>[];
-      }
-    } catch (parseErr) {
-      console.warn("[Builder Agent] Primary JSON parse failed, attempting secondary artifact regex extraction:", parseErr);
-      // Secondary fallback: extract individual artifact JSON blocks
-      const artifactMatches = res.text?.matchAll(/\{\s*"id"\s*:\s*"([^"]+)"[\s\S]*?"title"\s*:\s*"([^"]+)"[\s\S]*?"body"\s*:\s*"([\s\S]*?)"\s*(?:,\s*"referenced_entities"[\s\S]*?)?\}/g);
-      if (artifactMatches) {
-        for (const match of artifactMatches) {
-          try {
-            const parsed = extractJson(match[0]) as Record<string, unknown>;
-            if (parsed && typeof parsed.title === "string") {
-              artIn.push(parsed);
-            }
-          } catch {
-            // skip malformed snippet
-          }
-        }
-      }
-    }
+    const raw = extractJson(res.text!) as Record<string, unknown>;
+    const artIn = Array.isArray(raw.artifacts) ? raw.artifacts : [];
 
     const artifacts: BuilderArtifact[] = artIn.slice(0, 6).map((item: Record<string, unknown>, i: number) => {
       const rawRefs = Array.isArray(item?.referenced_entities) ? item.referenced_entities : [];
@@ -174,13 +152,11 @@ ${opts.previousArtifacts.map((a) => `[${a.jobId}] ${a.kind}: ${a.title}\n${a.bod
     });
 
     if (artifacts.length === 0) {
-      return { ok: false, error: "Builder produced no complete artifacts. Try a clearer dump or rerun the loop." };
+      return { ok: false, error: "Builder produced no artifacts. Try a clearer dump." };
     }
 
     return { ok: true, result: { artifacts } };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Parse failure";
-    console.error("[Builder Agent] Failed to parse artifacts:", msg, "Raw text preview:", res.text?.slice(0, 300));
-    return { ok: false, error: `Could not parse Builder output (${msg}). Run the loop again.` };
+  } catch {
+    return { ok: false, error: "Could not parse Builder output. Run the loop again." };
   }
 }
