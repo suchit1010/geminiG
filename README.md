@@ -134,11 +134,3 @@ Output:
 ```
 
 ---
-
-## 🎥 4-Minute Demo Video Script Guide
-
-1. **The Problem (0:00–0:45):** Show chaotic, unorganized Slack notes and sticky notes. Explain the cognitive friction of "glue work".
-2. **The Ingestion (0:45–1:15):** Paste the mess into Gauntlet (or drop a photo of handwritten notes). Show "Powered by Gemini 3.5 Flash".
-3. **The Multi-Agent Execution (1:15–2:15):** Watch the 6-stage pipeline execute live: Lead ➔ Builders ➔ Critic (double-blind score 94/100) ➔ Deterministic Safety Gate.
-4. **The Safety Gate & Google Dispatch (2:15–3:15):** Highlight the **100% Grounded** safety audit badge and click **"Open Draft in Gmail"** and **"Create Calendar Hold"**.
-5. **Google Cloud Run Infrastructure (3:15–4:00):** Show the Google Cloud Console / Cloud Run service dashboard and `.run.app` live URL.
