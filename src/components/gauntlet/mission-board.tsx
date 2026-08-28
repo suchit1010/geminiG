@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
+  Brain,
   Check,
   Copy,
   Layers,
@@ -19,6 +20,7 @@ import { ActionDispatchGate } from "@/components/gauntlet/action-dispatch-gate";
 import { runGauntletRound } from "@/lib/gauntlet/run-round";
 import { useGauntlet } from "@/lib/gauntlet/store";
 import type { Artifact, ArtifactKind, Mission } from "@/lib/gauntlet/types";
+import { ingestMemory, useMemory } from "@/lib/memory";
 
 const AGENT_PHASES = [
   { key: "lead", label: "01. Lead", description: "Decomposing chaos & extracting verifiable entity spans" },
@@ -210,6 +212,44 @@ export function MissionBoard({ id }: { id: string }) {
               <span className="text-subtle">Gemini 3.5 Flash</span>
             </div>
           </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={async () => {
+              if (!mission.objective && !mission.dump) return;
+              toast.info("Ingesting mission into Loki Neural Memory...");
+              const text = `Mission: ${mission.objective || mission.goal}\nDomain: ${mission.domain}\n\nKey Artifacts:\n${mission.artifacts.map((a) => `- ${a.title}: ${a.body.slice(0, 150)}`).join("\n")}`;
+              const res = await ingestMemory({
+                data: { rawText: text, sourceType: "dump", apiKey: apiKey || undefined },
+              });
+              if (res.ok) {
+                const r = res.result;
+                useMemory.getState().addEntry({
+                  id: r.memoryId,
+                  userId: "dev-user",
+                  createdAt: new Date().toISOString(),
+                  updatedAt: new Date().toISOString(),
+                  rawText: text,
+                  processedSummary: r.summary,
+                  domain: r.domain,
+                  embeddingVector: null,
+                  missionId: mission.id,
+                  sourceType: "dump",
+                  tags: ["mission"],
+                  isArchived: false,
+                });
+                if (r.extractedNodes.length) useMemory.getState().upsertNodes(r.extractedNodes);
+                if (r.extractedEdges.length) useMemory.getState().upsertEdges(r.extractedEdges);
+                toast.success("Mission saved to Neural Memory Graph!");
+              } else {
+                toast.error(res.error || "Failed to save to memory.");
+              }
+            }}
+            className="hidden sm:flex items-center gap-1.5 border-accent/30 bg-surface-2 hover:bg-surface text-accent"
+          >
+            <Brain className="size-3.5" />
+            <span className="font-mono text-xs">Save to Memory</span>
+          </Button>
           <Button
             size="sm"
             variant="secondary"

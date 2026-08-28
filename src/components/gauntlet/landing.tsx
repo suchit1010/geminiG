@@ -6,6 +6,8 @@ import { LoopMark } from "@/components/gauntlet/loop-mark";
 import { STARTERS } from "@/lib/gauntlet/starters";
 import { listMissions, useGauntlet } from "@/lib/gauntlet/store";
 import { Intake } from "@/components/gauntlet/intake";
+import { MemorySidebar } from "@/components/gauntlet/memory-sidebar";
+import { KnowledgeGraphView } from "@/components/gauntlet/knowledge-graph-view";
 import { ServerProxyModal } from "@/components/gauntlet/server-proxy-modal";
 import type { Attachment } from "@/lib/gauntlet/types";
 
@@ -159,6 +161,27 @@ export function Landing() {
               </li>
             ))}
           </ol>
+        </section>
+
+        {/* Neural Memory Layer Dashboard */}
+        <section className="mb-16 border-t border-border pt-10">
+          <div className="mb-6 flex items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-medium uppercase tracking-[0.18em] text-accent">
+                Loki Engine · Persistent Memory
+              </p>
+              <h2 className="font-display text-2xl tracking-tight text-fg mt-1">
+                Continuous Life & Work Memory Stream
+              </h2>
+              <p className="mt-1 max-w-2xl text-sm text-muted">
+                Dump micro-thoughts, context, and tasks throughout the day. Loki summarizes, embeds, and discovers relationships between people, projects, and events.
+              </p>
+            </div>
+          </div>
+          <div className="grid gap-6 md:grid-cols-[1.1fr_0.9fr]">
+            <MemorySidebar className="min-h-[440px]" />
+            <KnowledgeGraphView className="min-h-[440px]" />
+          </div>
         </section>
 
         <section id="starters" className="scroll-mt-8">
