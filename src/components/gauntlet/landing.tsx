@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { LoopMark } from "@/components/gauntlet/loop-mark";
 import { STARTERS } from "@/lib/gauntlet/starters";
 import { listMissions, useGauntlet } from "@/lib/gauntlet/store";
+import { AlertPanel } from "@/components/gauntlet/alert-panel";
 import { Intake } from "@/components/gauntlet/intake";
 import { MemorySidebar } from "@/components/gauntlet/memory-sidebar";
 import { KnowledgeGraphView } from "@/components/gauntlet/knowledge-graph-view";
@@ -165,6 +166,8 @@ export function Landing() {
 
         {/* Neural Memory Layer Dashboard */}
         <section className="mb-16 border-t border-border pt-10">
+          <AlertPanel className="mb-8" />
+
           <div className="mb-6 flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-medium uppercase tracking-[0.18em] text-accent">
