@@ -5,6 +5,7 @@ import {
   Copy,
   Layers,
   LoaderCircle,
+  Plug,
   ShieldCheck,
   Sparkles,
   SquareArrowLeft,
@@ -15,6 +16,7 @@ import { toast } from "sonner";
 import { LoopMark } from "@/components/gauntlet/loop-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { IntegrationsPanel } from "@/components/gauntlet/integrations-panel";
 import { ServerProxyModal } from "@/components/gauntlet/server-proxy-modal";
 import { ActionDispatchGate } from "@/components/gauntlet/action-dispatch-gate";
 import { runGauntletRound } from "@/lib/gauntlet/run-round";
@@ -52,6 +54,7 @@ export function MissionBoard({ id }: { id: string }) {
   const [agentPhase, setAgentPhase] = useState(0);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [proxyModalOpen, setProxyModalOpen] = useState(false);
+  const [integrationsOpen, setIntegrationsOpen] = useState(false);
   const runningLock = useRef(new Set<string>());
 
   useEffect(() => {
@@ -249,6 +252,15 @@ export function MissionBoard({ id }: { id: string }) {
           >
             <Brain className="size-3.5" />
             <span className="font-mono text-xs">Save to Memory</span>
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setIntegrationsOpen(true)}
+            className="hidden sm:flex items-center gap-1.5 border-border bg-surface-2 hover:bg-surface text-fg"
+          >
+            <Plug className="size-3.5 text-accent" />
+            <span className="font-mono text-xs">Tools & APIs</span>
           </Button>
           <Button
             size="sm"
@@ -542,6 +554,7 @@ export function MissionBoard({ id }: { id: string }) {
         </aside>
       </div>
       {proxyModalOpen && <ServerProxyModal onClose={() => setProxyModalOpen(false)} />}
+      {integrationsOpen && <IntegrationsPanel onClose={() => setIntegrationsOpen(false)} />}
     </div>
   );
 }

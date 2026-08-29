@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, ArrowUpRight, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Plug, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LoopMark } from "@/components/gauntlet/loop-mark";
@@ -7,6 +7,7 @@ import { STARTERS } from "@/lib/gauntlet/starters";
 import { listMissions, useGauntlet } from "@/lib/gauntlet/store";
 import { AlertPanel } from "@/components/gauntlet/alert-panel";
 import { Intake } from "@/components/gauntlet/intake";
+import { IntegrationsPanel } from "@/components/gauntlet/integrations-panel";
 import { MemorySidebar } from "@/components/gauntlet/memory-sidebar";
 import { KnowledgeGraphView } from "@/components/gauntlet/knowledge-graph-view";
 import { ServerProxyModal } from "@/components/gauntlet/server-proxy-modal";
@@ -42,6 +43,7 @@ export function Landing() {
   );
 
   const [proxyOpen, setProxyOpen] = useState(false);
+  const [integrationsOpen, setIntegrationsOpen] = useState(false);
 
   useEffect(() => {
     if (useGauntlet.persist.hasHydrated()) {
@@ -81,6 +83,15 @@ export function Landing() {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setIntegrationsOpen(true)}
+            className="flex items-center gap-1.5 border-border bg-surface-2 hover:bg-surface text-fg"
+          >
+            <Plug className="size-3.5 text-accent" />
+            <span className="font-mono text-xs">Tools & APIs</span>
+          </Button>
           <Button
             size="sm"
             variant="secondary"
@@ -285,6 +296,7 @@ export function Landing() {
       )}
 
       {proxyOpen && <ServerProxyModal onClose={() => setProxyOpen(false)} />}
+      {integrationsOpen && <IntegrationsPanel onClose={() => setIntegrationsOpen(false)} />}
     </div>
   );
 }
