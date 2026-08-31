@@ -7,10 +7,10 @@
  * - Gemini-generated suggested talking points / next actions
  */
 
-import { Calendar, CheckCircle2, MessageSquare, Sparkles, User, FolderGit2, Tag } from "lucide-react";
+import { CheckCircle2, MessageSquare, Sparkles, User, FolderGit2, Tag } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { ContextBundle, KGNode, MemoryEntry } from "@/lib/memory";
+import type { KGNode, MemoryEntry } from "@/lib/memory";
 
 export function ContextCard({
   node,
@@ -65,7 +65,7 @@ export function ContextCard({
             {memories.slice(0, 3).map((m) => (
               <div key={m.id} className="rounded-md border border-border/50 bg-bg/50 p-2.5 text-xs">
                 <p className="font-medium text-fg">{m.processedSummary || m.rawText}</p>
-                <p className="mt-1 font-mono text-[10px] text-subtle">
+                <p suppressHydrationWarning className="mt-1 font-mono text-[10px] text-subtle">
                   {new Date(m.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
                 </p>
               </div>

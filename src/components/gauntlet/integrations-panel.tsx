@@ -10,23 +10,17 @@
  */
 
 import {
-  Check,
-  CheckCircle2,
   ChevronDown,
   ChevronUp,
   ExternalLink,
   Eye,
   EyeOff,
-  Globe,
-  Key,
-  Layers,
   LoaderCircle,
   Mail,
   MessageSquare,
   Plug,
   RefreshCw,
   ShieldCheck,
-  Sparkles,
   Trash2,
   X,
   CheckSquare,

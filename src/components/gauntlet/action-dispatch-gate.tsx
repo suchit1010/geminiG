@@ -2,7 +2,6 @@ import {
   Calendar,
   Check,
   Edit3,
-  ExternalLink,
   Mail,
   ShieldAlert,
   ShieldCheck,

@@ -150,11 +150,15 @@ export default defineConfig(({ command, isPreview }) => ({
     host: "0.0.0.0",
     port: 3000,
     strictPort: true,
+    cors: true,
+    allowedHosts: true,
   },
   preview: {
-    host: "127.0.0.1",
+    host: "0.0.0.0",
     port: 8081,
     strictPort: true,
+    cors: true,
+    allowedHosts: true,
   },
   resolve: { tsconfigPaths: true },
   plugins: [

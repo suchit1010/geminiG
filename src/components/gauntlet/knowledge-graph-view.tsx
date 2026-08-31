@@ -11,7 +11,7 @@ import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useMemory } from "@/lib/memory";
-import type { KGNode, KGNodeType } from "@/lib/memory";
+import type { KGNodeType } from "@/lib/memory";
 
 export function KnowledgeGraphView({ className = "" }: { className?: string }) {
   const nodes = useMemory((s) => s.nodes);

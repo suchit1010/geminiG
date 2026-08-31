@@ -6,14 +6,14 @@
  * and shows the active memory stream with extracted entity badges.
  */
 
-import { Brain, Filter, Plus, Send, Sparkles, User, Briefcase, Globe } from "lucide-react";
+import { Brain, Filter, Send, Sparkles, User, Briefcase, Globe } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { filteredEntries, ingestMemory, useMemory } from "@/lib/memory";
-import type { DomainFilter, MemoryDomain } from "@/lib/memory";
+import type { MemoryDomain } from "@/lib/memory";
 import { useGauntlet } from "@/lib/gauntlet/store";
 
 export function MemorySidebar({ className = "" }: { className?: string }) {
@@ -171,7 +171,7 @@ export function MemorySidebar({ className = "" }: { className?: string }) {
               className="group rounded-lg border border-border/60 bg-bg/40 p-3 transition-colors hover:border-border hover:bg-surface-2"
             >
               <div className="flex items-center justify-between gap-2">
-                <span className="font-mono text-[10px] uppercase tracking-wider text-subtle">
+                <span suppressHydrationWarning className="font-mono text-[10px] uppercase tracking-wider text-subtle">
                   {new Date(m.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                 </span>
                 <DomainBadge domain={m.domain} />

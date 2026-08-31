@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, ArrowUpRight, Key, Plug, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Key, Plug, Sparkles, Mic } from "lucide-react";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { LoopMark } from "@/components/gauntlet/loop-mark";
 import { STARTERS } from "@/lib/gauntlet/starters";
@@ -12,7 +13,11 @@ import { MemorySidebar } from "@/components/gauntlet/memory-sidebar";
 import { KnowledgeGraphView } from "@/components/gauntlet/knowledge-graph-view";
 import { ServerProxyModal } from "@/components/gauntlet/server-proxy-modal";
 import { ApiKeyModal } from "@/components/gauntlet/api-key-modal";
+import { VoiceLiveModal } from "@/components/gauntlet/voice-live-modal";
+import { FirebaseAuthButton } from "@/components/gauntlet/firebase-auth-button";
 import { GeminiStar } from "@/components/gauntlet/gemini-logo";
+import { useAuthUser } from "@/lib/auth/use-firebase-auth";
+import { subscribeUserMissions, syncMissionToFirestore } from "@/lib/firestore-sync";
 import type { Attachment } from "@/lib/gauntlet/types";
 
 const STEPS = [
@@ -48,12 +53,31 @@ export function Landing() {
   const [proxyOpen, setProxyOpen] = useState(false);
   const [integrationsOpen, setIntegrationsOpen] = useState(false);
   const [apiKeyOpen, setApiKeyOpen] = useState(false);
+  const [voiceLiveOpen, setVoiceLiveOpen] = useState(false);
+
+  const { user } = useAuthUser();
 
   useEffect(() => {
     if (useGauntlet.persist.hasHydrated()) {
       useGauntlet.getState().setHasHydrated(true);
     }
   }, []);
+
+  // Sync user missions from Cloud Firestore if signed in
+  useEffect(() => {
+    if (!user) return;
+    const unsub = subscribeUserMissions(user.uid, (remoteMissions) => {
+      if (remoteMissions.length > 0) {
+        const currentMissions = useGauntlet.getState().missions;
+        const merged = { ...currentMissions };
+        for (const m of remoteMissions) {
+          merged[m.id] = m;
+        }
+        useGauntlet.setState({ missions: merged });
+      }
+    });
+    return () => unsub();
+  }, [user]);
 
   const recent = hasHydrated ? listMissions(missionsMap).slice(0, 4) : [];
 
@@ -71,13 +95,20 @@ export function Landing() {
 
   function launch(dump: string, goal: string, attachments: Attachment[]) {
     const mission = createMission({ dump, goal, attachments });
+    if (user) {
+      void syncMissionToFirestore(mission, user.uid);
+    }
     setOpen(false);
+    toast.info("Mission queued", {
+      description: "Starting 6-stage autonomous agent pipeline...",
+      duration: 3000,
+    });
     void navigate({ to: "/mission/$id", params: { id: mission.id } });
   }
 
   return (
     <div className="min-h-dvh bg-bg">
-      <header className="flex items-center justify-between px-5 py-5 md:px-10">
+      <header className="flex flex-wrap items-center justify-between gap-3 px-5 py-5 md:px-10 border-b border-border/40">
         <div className="flex items-center gap-2 text-fg">
           <LoopMark className="size-7 text-accent" />
           <span className="font-display text-lg tracking-tight">Gauntlet</span>
@@ -86,7 +117,20 @@ export function Landing() {
             Powered by Gemini
           </span>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Live Voice Assistant Trigger */}
+          <Button
+            size="sm"
+            onClick={() => setVoiceLiveOpen(true)}
+            className="flex items-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-medium shadow-sm"
+          >
+            <Mic className="size-3.5 text-blue-200 animate-pulse" />
+            <span className="text-xs">Live Voice (Gemini 3.1)</span>
+          </Button>
+
+          {/* Firebase Auth Google Sign-in */}
+          <FirebaseAuthButton />
+
           <Button
             size="sm"
             variant="secondary"
@@ -314,6 +358,19 @@ export function Landing() {
       {proxyOpen && <ServerProxyModal onClose={() => setProxyOpen(false)} />}
       {integrationsOpen && <IntegrationsPanel onClose={() => setIntegrationsOpen(false)} />}
       {apiKeyOpen && <ApiKeyModal onClose={() => setApiKeyOpen(false)} />}
+      {voiceLiveOpen && (
+        <VoiceLiveModal
+          open={voiceLiveOpen}
+          onClose={() => setVoiceLiveOpen(false)}
+          onApplyTranscript={(transcript) => {
+            setPrefill({
+              dump: transcript,
+              goal: "Organize and extract actionable plan from voice conversation",
+            });
+            setOpen(true);
+          }}
+        />
+      )}
     </div>
   );
 }

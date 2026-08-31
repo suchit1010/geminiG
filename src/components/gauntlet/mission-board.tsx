@@ -5,11 +5,9 @@ import {
   Check,
   Copy,
   Key,
-  Layers,
   LoaderCircle,
   Plug,
   RefreshCw,
-  ShieldCheck,
   Sparkles,
   SquareArrowLeft,
   StopCircle,
@@ -23,6 +21,9 @@ import { ApiKeyModal } from "@/components/gauntlet/api-key-modal";
 import { IntegrationsPanel } from "@/components/gauntlet/integrations-panel";
 import { ServerProxyModal } from "@/components/gauntlet/server-proxy-modal";
 import { ActionDispatchGate } from "@/components/gauntlet/action-dispatch-gate";
+import { FirebaseAuthButton } from "@/components/gauntlet/firebase-auth-button";
+import { useAuthUser } from "@/lib/auth/use-firebase-auth";
+import { syncMissionToFirestore } from "@/lib/firestore-sync";
 import { runGauntletRound } from "@/lib/gauntlet/run-round";
 import { SAMPLE_ID } from "@/lib/gauntlet/sample";
 import { useGauntlet } from "@/lib/gauntlet/store";
@@ -68,6 +69,8 @@ export function MissionBoard({ id }: { id: string }) {
       useGauntlet.getState().setHasHydrated(true);
     }
   }, []);
+
+  const { user } = useAuthUser();
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -147,10 +150,32 @@ export function MissionBoard({ id }: { id: string }) {
         return;
       }
       applyRound(current.id, res.result);
+      if (user) {
+        const updatedMission = useGauntlet.getState().missions[current.id];
+        if (updatedMission) {
+          void syncMissionToFirestore(updatedMission, user.uid);
+        }
+      }
+      const artifactCount = res.result.artifacts.length;
+      const entityCount = res.result.entities?.length ?? 0;
+      const criticScore = res.result.critic.overall;
+      const safetyScore = res.result.safetyGate?.score ?? 100;
+
       if (res.result.critic.verdict === "pass") {
-        toast.success("Critic passed the work.");
+        toast.success(`Round ${nextRound} Complete · Critic Passed (${criticScore}/100)`, {
+          description: `Produced ${artifactCount} verified artifacts with ${entityCount} source entities grounded (${safetyScore}% safety score).`,
+          duration: 5000,
+        });
       } else if (res.result.critic.verdict === "needs_human") {
-        toast.message("The loop needs a human on one fact.");
+        toast.warning(`Round ${nextRound} Complete · Human Review Needed (${criticScore}/100)`, {
+          description: `Generated ${artifactCount} artifacts. ${res.result.critic.largestGap}`,
+          duration: 6000,
+        });
+      } else {
+        toast.info(`Round ${nextRound} Iteration Done · Score: ${criticScore}/100`, {
+          description: `Next action: ${res.result.critic.nextAction.slice(0, 100)}`,
+          duration: 5000,
+        });
       }
     } finally {
       runningLock.current.delete(current.id);
@@ -263,6 +288,7 @@ export function MissionBoard({ id }: { id: string }) {
             <Brain className="size-3.5" />
             <span className="font-mono text-xs">Save to Memory</span>
           </Button>
+          <FirebaseAuthButton />
           <Button
             size="sm"
             variant="secondary"

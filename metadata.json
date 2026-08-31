@@ -1,7 +1,9 @@
 {
   "name": "Gauntlet",
   "description": "Gauntlet is a work agent for everyone. Drop a messy job. It plans, builds, and criticizes itself until the work is done.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": [
+    "microphone"
+  ],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
   ]
