@@ -25,7 +25,8 @@ import { constants as osConstants } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const APP_ENV_REL_PATH = ".grok/app-env.json";
+export const APP_ENV_REL_PATH = ".gemini/app-env.json";
+export const ALT_APP_ENV_REL_PATH = ".grok/app-env.json";
 
 const VITE_PREFIX = "VITE_";
 
@@ -56,7 +57,11 @@ export function readAppEnv(root) {
   try {
     return parseAppEnv(readFileSync(join(root, APP_ENV_REL_PATH), "utf8"));
   } catch {
-    return {};
+    try {
+      return parseAppEnv(readFileSync(join(root, ALT_APP_ENV_REL_PATH), "utf8"));
+    } catch {
+      return {};
+    }
   }
 }
 

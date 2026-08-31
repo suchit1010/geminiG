@@ -39,7 +39,7 @@ type GeminiAPIResponse = {
   error?: { message?: string; code?: number };
 };
 
-const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash";
+export const DEFAULT_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash";
 const FALLBACK_MODELS = [
   "gemini-3.5-flash",
   "gemini-2.5-flash",
@@ -214,7 +214,9 @@ export function extractJson(text: string): unknown {
   // 1. Direct JSON parse
   try {
     return JSON.parse(trimmed);
-  } catch {}
+  } catch {
+    // try next strategy
+  }
 
   // 2. Extract from markdown code fences
   const fenceRegex = /```(?:json)?\s*([\s\S]*?)```/gi;
@@ -224,10 +226,14 @@ export function extractJson(text: string): unknown {
     if (candidate) {
       try {
         return JSON.parse(candidate);
-      } catch {}
+      } catch {
+        // try next
+      }
       try {
         return repairAndParseJson(candidate);
-      } catch {}
+      } catch {
+        // try next
+      }
     }
   }
 
@@ -238,10 +244,14 @@ export function extractJson(text: string): unknown {
     const candidate = trimmed.slice(startBrace, lastBrace + 1);
     try {
       return JSON.parse(candidate);
-    } catch {}
+    } catch {
+      // try next
+    }
     try {
       return repairAndParseJson(candidate);
-    } catch {}
+    } catch {
+      // try next
+    }
   }
 
   // 4. Extract between outer array brackets [ ... ]
@@ -251,10 +261,14 @@ export function extractJson(text: string): unknown {
     const candidate = trimmed.slice(startBracket, lastBracket + 1);
     try {
       return JSON.parse(candidate);
-    } catch {}
+    } catch {
+      // try next
+    }
     try {
       return repairAndParseJson(candidate);
-    } catch {}
+    } catch {
+      // try next
+    }
   }
 
   // 5. Attempt auto-repair on full text
@@ -271,6 +285,7 @@ function repairAndParseJson(str: string): unknown {
   cleaned = cleaned.replace(/,\s*([}\]])/g, "$1");
 
   // Fix literal unescaped linebreaks inside strings
+  /* eslint-disable-next-line no-control-regex */
   cleaned = cleaned.replace(/[\u0000-\u0008\u000B-\u000C\u000E-\u001F]/g, "");
 
   return JSON.parse(cleaned);

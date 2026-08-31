@@ -58,10 +58,10 @@ export function extractDispatchProposals(
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i]?.trim() || "";
         // Match day/time formats like "Tue • 09:00–09:25 — PAY-441" or "Thursday 16:30 — Dentist"
-        if (/^(?:[A-Z][a-z]{2,8}|\d{1,2}[:.]\d{2}|[•\-\*]\s*\d{1,2}[:.]\d{2})/i.test(line) && line.length > 5) {
+        if (/^(?:[A-Z][a-z]{2,8}|\d{1,2}[:.]\d{2}|[•\-*]\s*\d{1,2}[:.]\d{2})/i.test(line) && line.length > 5) {
           calendarEvents.push({
             id: `cal_${a.id}_${i}`,
-            title: line.replace(/^[•\-\*]\s*/, "").slice(0, 80),
+            title: line.replace(/^[•\-*]\s*/, "").slice(0, 80),
             start: line.slice(0, 30),
             description: a.title,
           });
@@ -74,8 +74,8 @@ export function extractDispatchProposals(
       const lines = a.body.split("\n");
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i]?.trim() || "";
-        if (/^(?:\d+[\.\)]|\-|\*|\[\s*\])\s+/.test(line)) {
-          const itemText = line.replace(/^(?:\d+[\.\)]|\-|\*|\[\s*\])\s+/, "").trim();
+        if (/^(?:\d+[.)]|-|\*|\[\s*\])\s+/.test(line)) {
+          const itemText = line.replace(/^(?:\d+[.)]|-|\*|\[\s*\])\s+/, "").trim();
           if (itemText.length > 3) {
             tasks.push({
               id: `task_${a.id}_${i}`,
