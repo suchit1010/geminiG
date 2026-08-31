@@ -12,6 +12,7 @@ import { MemorySidebar } from "@/components/gauntlet/memory-sidebar";
 import { KnowledgeGraphView } from "@/components/gauntlet/knowledge-graph-view";
 import { ServerProxyModal } from "@/components/gauntlet/server-proxy-modal";
 import { ApiKeyModal } from "@/components/gauntlet/api-key-modal";
+import { GeminiStar } from "@/components/gauntlet/gemini-logo";
 import type { Attachment } from "@/lib/gauntlet/types";
 
 const STEPS = [
@@ -280,21 +281,22 @@ export function Landing() {
         )}
 
         <section className="mt-20 border-t border-border pt-10">
-          <div className="flex flex-wrap items-center gap-6">
+          <div className="flex flex-wrap items-center justify-between gap-6">
             <p className="max-w-2xl text-sm leading-relaxed text-muted">
               Three Gemini 3.5 Flash agents in a self-correcting loop. A lead decomposes,
               builders produce, a critic scores. Drop your mess — text or photos — and
               walk away with finished, copy-paste-ready work.
             </p>
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-surface px-3 py-2">
-              <img
-                src="https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690b6.svg"
-                alt="Gemini"
-                className="size-5"
-              />
-              <span className="text-xs font-medium text-muted">
-                Built with Google Gemini 3.5 Flash
-              </span>
+            <div className="flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-2.5 shadow-sm transition-colors hover:border-border-strong hover:bg-surface-2">
+              <GeminiStar className="size-6 shrink-0 drop-shadow-[0_0_10px_rgba(66,133,244,0.35)]" />
+              <div className="flex items-center gap-2">
+                <span className="font-display text-base font-semibold tracking-tight text-fg">
+                  Gemini 3.5
+                </span>
+                <span className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase tracking-wider text-muted">
+                  Flash
+                </span>
+              </div>
             </div>
           </div>
         </section>
