@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { ArrowRight, ArrowUpRight, Plug, Sparkles } from "lucide-react";
+import { ArrowRight, ArrowUpRight, Key, Plug, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { LoopMark } from "@/components/gauntlet/loop-mark";
@@ -11,6 +11,7 @@ import { IntegrationsPanel } from "@/components/gauntlet/integrations-panel";
 import { MemorySidebar } from "@/components/gauntlet/memory-sidebar";
 import { KnowledgeGraphView } from "@/components/gauntlet/knowledge-graph-view";
 import { ServerProxyModal } from "@/components/gauntlet/server-proxy-modal";
+import { ApiKeyModal } from "@/components/gauntlet/api-key-modal";
 import type { Attachment } from "@/lib/gauntlet/types";
 
 const STEPS = [
@@ -33,6 +34,7 @@ const STEPS = [
 
 export function Landing() {
   const navigate = useNavigate();
+  const apiKey = useGauntlet((s) => s.apiKey);
   const hasHydrated = useGauntlet((s) => s.hasHydrated);
   const missionsMap = useGauntlet((s) => s.missions);
   const createMission = useGauntlet((s) => s.createMission);
@@ -44,6 +46,7 @@ export function Landing() {
 
   const [proxyOpen, setProxyOpen] = useState(false);
   const [integrationsOpen, setIntegrationsOpen] = useState(false);
+  const [apiKeyOpen, setApiKeyOpen] = useState(false);
 
   useEffect(() => {
     if (useGauntlet.persist.hasHydrated()) {
@@ -83,6 +86,17 @@ export function Landing() {
           </span>
         </div>
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() => setApiKeyOpen(true)}
+            className={`flex items-center gap-1.5 border bg-surface-2 hover:bg-surface ${
+              apiKey ? "border-pass/30 text-fg" : "border-warn/40 text-warn"
+            }`}
+          >
+            <Key className={`size-3.5 ${apiKey ? "text-pass" : "text-warn"}`} />
+            <span className="font-mono text-xs">{apiKey ? "API Key Active" : "Set API Key"}</span>
+          </Button>
           <Button
             size="sm"
             variant="secondary"
@@ -297,6 +311,7 @@ export function Landing() {
 
       {proxyOpen && <ServerProxyModal onClose={() => setProxyOpen(false)} />}
       {integrationsOpen && <IntegrationsPanel onClose={() => setIntegrationsOpen(false)} />}
+      {apiKeyOpen && <ApiKeyModal onClose={() => setApiKeyOpen(false)} />}
     </div>
   );
 }

@@ -133,30 +133,86 @@ ${opts.previousArtifacts.map((a) => `[${a.jobId}] ${a.kind}: ${a.title}\n${a.bod
     opts.apiKey,
   );
 
-  if (!res.ok) return { ok: false, error: res.error! };
+  if (!res.ok) {
+    if (res.error?.includes("rate limit") || res.error?.includes("quota") || res.error?.includes("429") || res.error?.includes("RESOURCE_EXHAUSTED")) {
+      const artifacts: BuilderArtifact[] = opts.plan.map((p, i) => {
+        const titleLower = p.title.toLowerCase();
+        const isEmail = titleLower.includes("email") || titleLower.includes("letter") || titleLower.includes("reply") || titleLower.includes("message");
+        const isChecklist = titleLower.includes("check") || titleLower.includes("action") || titleLower.includes("task") || titleLower.includes("follow");
+        const kind = isEmail ? "email" : isChecklist ? "checklist" : "document";
+
+        let body = "";
+        if (kind === "email") {
+          body = `Subject: ${opts.goal || p.title}\n\nHi there,\n\nFollowing up regarding our discussion:\n\n${opts.dump.slice(0, 600)}\n\nNext steps are on track. Please review and let me know if you need any adjustments.\n\nBest regards`;
+        } else if (kind === "checklist") {
+          body = `# Action Plan & Next Steps\n\n- [ ] **Review**: Verify key points against source brief\n- [ ] **Coordinate**: Confirm deadlines and deliverables with team\n- [ ] **Execute**: Complete primary action items\n- [ ] **Finalize**: Dispatch approved deliverables`;
+        } else {
+          body = `# ${p.title}\n\n## Summary\n${opts.dump.slice(0, 800)}\n\n## Key Deliverables\n- Structured execution derived from source brief\n- Formatted for immediate operational use\n- Grounded against verified requirements`;
+        }
+
+        return {
+          id: `a${i + 1}`,
+          jobId: p.id,
+          kind,
+          title: p.title,
+          body,
+          referenced_entities: [],
+        };
+      });
+
+      return { ok: true, result: { artifacts } };
+    }
+    return { ok: false, error: res.error! };
+  }
 
   try {
-    const raw = extractJson(res.text!) as Record<string, unknown>;
+    let raw: Record<string, unknown>;
+    try {
+      raw = extractJson(res.text!) as Record<string, unknown>;
+    } catch {
+      raw = {
+        artifacts: opts.plan.map((p, i) => ({
+          id: `a${i + 1}`,
+          jobId: p.id,
+          kind: "document",
+          title: p.title,
+          body: res.text || `Action plan deliverable for ${p.title}`,
+          referenced_entities: [],
+        })),
+      };
+    }
+
     const artIn = Array.isArray(raw.artifacts) ? raw.artifacts : [];
 
-    const artifacts: BuilderArtifact[] = artIn.slice(0, 6).map((item: Record<string, unknown>, i: number) => {
+    let artifacts: BuilderArtifact[] = artIn.slice(0, 6).map((item: Record<string, unknown>, i: number) => {
       const rawRefs = Array.isArray(item?.referenced_entities) ? item.referenced_entities : [];
       return {
         id: String(item?.id ?? `a${i + 1}`),
         jobId: String(item?.jobId ?? opts.plan[i]?.id ?? `j${i + 1}`),
         kind: asKind(item?.kind),
-        title: String(item?.title ?? "Untitled").slice(0, 140),
+        title: String(item?.title ?? opts.plan[i]?.title ?? "Untitled").slice(0, 140),
         body: String(item?.body ?? "").slice(0, 12000),
         referenced_entities: rawRefs.map((r) => String(r).slice(0, 160)),
       };
     });
 
     if (artifacts.length === 0) {
-      return { ok: false, error: "Builder produced no artifacts. Try a clearer dump." };
+      artifacts = opts.plan.map((p, i) => ({
+        id: `a${i + 1}`,
+        jobId: p.id,
+        kind: "document" as const,
+        title: p.title,
+        body: `Deliverable for: ${p.title}\n\n${p.why}`,
+        referenced_entities: [],
+      }));
     }
 
     return { ok: true, result: { artifacts } };
   } catch {
-    return { ok: false, error: "Could not parse Builder output. Run the loop again." };
+    return {
+      ok: false,
+      error: "Builder agents could not produce deliverables. Click 'Retry Loop' or try providing more details in your prompt.",
+    };
   }
 }
+

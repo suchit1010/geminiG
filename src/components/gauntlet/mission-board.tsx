@@ -1,11 +1,14 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import {
+  AlertCircle,
   Brain,
   Check,
   Copy,
+  Key,
   Layers,
   LoaderCircle,
   Plug,
+  RefreshCw,
   ShieldCheck,
   Sparkles,
   SquareArrowLeft,
@@ -16,6 +19,7 @@ import { toast } from "sonner";
 import { LoopMark } from "@/components/gauntlet/loop-mark";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ApiKeyModal } from "@/components/gauntlet/api-key-modal";
 import { IntegrationsPanel } from "@/components/gauntlet/integrations-panel";
 import { ServerProxyModal } from "@/components/gauntlet/server-proxy-modal";
 import { ActionDispatchGate } from "@/components/gauntlet/action-dispatch-gate";
@@ -53,6 +57,7 @@ export function MissionBoard({ id }: { id: string }) {
   const navigate = useNavigate();
   const [agentPhase, setAgentPhase] = useState(0);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [apiKeyModalOpen, setApiKeyModalOpen] = useState(false);
   const [proxyModalOpen, setProxyModalOpen] = useState(false);
   const [integrationsOpen, setIntegrationsOpen] = useState(false);
   const runningLock = useRef(new Set<string>());
@@ -256,6 +261,17 @@ export function MissionBoard({ id }: { id: string }) {
           <Button
             size="sm"
             variant="secondary"
+            onClick={() => setApiKeyModalOpen(true)}
+            className={`flex items-center gap-1.5 border bg-surface-2 hover:bg-surface ${
+              apiKey ? "border-pass/30 text-fg" : "border-warn/40 text-warn"
+            }`}
+          >
+            <Key className={`size-3.5 ${apiKey ? "text-pass" : "text-warn"}`} />
+            <span className="font-mono text-xs">{apiKey ? "API Key Active" : "Set API Key"}</span>
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
             onClick={() => setIntegrationsOpen(true)}
             className="hidden sm:flex items-center gap-1.5 border-border bg-surface-2 hover:bg-surface text-fg"
           >
@@ -330,17 +346,38 @@ export function MissionBoard({ id }: { id: string }) {
           )}
 
           {mission.error && (
-            <div className="mt-4 grid gap-3">
-              <p className="text-sm leading-relaxed text-fail">{mission.error}</p>
-              <div className="flex flex-wrap gap-2">
+            <div className="mt-4 rounded-xl border border-fail/30 bg-fail/10 p-4">
+              <div className="flex items-start gap-2.5">
+                <AlertCircle className="size-4 text-fail shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="font-mono text-xs font-semibold uppercase tracking-wider text-fail">
+                    Execution Interrupted
+                  </h3>
+                  <p className="mt-1 text-xs leading-relaxed text-fg opacity-90">
+                    {mission.error}
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-3.5 flex flex-wrap items-center gap-2 pt-2 border-t border-fail/20">
+                <Button
+                  size="sm"
+                  onClick={() => void runLoop(mission)}
+                  disabled={running}
+                  className="flex items-center gap-1.5 bg-accent text-accent-fg hover:bg-accent/90 text-xs"
+                >
+                  <RefreshCw className={`size-3.5 ${running ? "animate-spin" : ""}`} />
+                  Retry Loop
+                </Button>
                 {mission.error.toLowerCase().includes("api key") && (
                   <Button
                     size="sm"
-                    onClick={() => setProxyModalOpen(true)}
-                    className="flex items-center gap-1.5"
+                    variant="secondary"
+                    onClick={() => setApiKeyModalOpen(true)}
+                    className="flex items-center gap-1.5 text-xs"
                   >
-                    <ShieldCheck className="size-3.5" />
-                    Server Proxy Details
+                    <Key className="size-3.5" />
+                    Set API Key
                   </Button>
                 )}
                 {mission.error.includes("recorded loop") && (
@@ -351,8 +388,9 @@ export function MissionBoard({ id }: { id: string }) {
                       const sample = installSample();
                       void navigate({ to: "/mission/$id", params: { id: sample.id } });
                     }}
+                    className="text-xs"
                   >
-                    Open the recorded loop
+                    Open Recorded Sample
                   </Button>
                 )}
               </div>
@@ -555,6 +593,7 @@ export function MissionBoard({ id }: { id: string }) {
       </div>
       {proxyModalOpen && <ServerProxyModal onClose={() => setProxyModalOpen(false)} />}
       {integrationsOpen && <IntegrationsPanel onClose={() => setIntegrationsOpen(false)} />}
+      {apiKeyModalOpen && <ApiKeyModal onClose={() => setApiKeyModalOpen(false)} />}
     </div>
   );
 }

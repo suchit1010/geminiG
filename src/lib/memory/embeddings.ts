@@ -33,12 +33,15 @@ export async function generateEmbedding(
   // Truncate to ~8000 chars to stay within embedding model limits
   const truncated = text.slice(0, 8000);
 
-  const url = `${BASE_URL}/${EMBED_MODEL}:embedContent?key=${effectiveKey}`;
+  const url = `${BASE_URL}/${EMBED_MODEL}:embedContent?key=${encodeURIComponent(effectiveKey)}`;
 
   try {
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "x-goog-api-key": effectiveKey,
+      },
       body: JSON.stringify({
         model: `models/${EMBED_MODEL}`,
         content: {

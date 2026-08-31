@@ -1,4 +1,4 @@
-import { Check, Mail, Calendar, CheckSquare, X } from "lucide-react";
+import { Check, Mail, Calendar, CheckSquare, MessageSquare, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,11 @@ import type {
   GmailDraftProposal,
   TaskProposal,
 } from "@/lib/gauntlet/types";
+import { SlackConnector } from "@/lib/integrations/slack/connector";
+import { JiraConnector } from "@/lib/integrations/jira/connector";
+
+const slackConnector = new SlackConnector();
+const jiraConnector = new JiraConnector();
 
 export type ActionReviewPayload =
   | {
@@ -26,6 +31,18 @@ export type ActionReviewPayload =
   | {
       type: "task";
       task: TaskProposal;
+    }
+  | {
+      type: "slack";
+      channel: string;
+      text: string;
+    }
+  | {
+      type: "jira";
+      projectKey: string;
+      summary: string;
+      description: string;
+      issueType?: string;
     };
 
 type Props = {
@@ -74,6 +91,27 @@ export function ActionReviewModal({
     payload.type === "task" ? payload.task.due || "" : "",
   );
 
+  // State for Slack
+  const [slackChannel, setSlackChannel] = useState(
+    payload.type === "slack" ? payload.channel : "#general",
+  );
+  const [slackText, setSlackText] = useState(
+    payload.type === "slack" ? payload.text : "",
+  );
+
+  // State for Jira
+  const [jiraProject, setJiraProject] = useState(
+    payload.type === "jira" ? payload.projectKey : "PROJ",
+  );
+  const [jiraSummary, setJiraSummary] = useState(
+    payload.type === "jira" ? payload.summary : "",
+  );
+  const [jiraDescription, setJiraDescription] = useState(
+    payload.type === "jira" ? payload.description : "",
+  );
+
+  const [dispatching, setDispatching] = useState(false);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -82,7 +120,7 @@ export function ActionReviewModal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  const handleAction = () => {
+  const handleAction = async () => {
     if (payload.type === "gmail") {
       const updatedDraft: GmailDraftProposal = {
         ...payload.draft,
@@ -93,6 +131,7 @@ export function ActionReviewModal({
       window.open(buildGmailComposeUrl(updatedDraft), "_blank");
       toast.success("Draft created");
       onConfirm?.({ type: "gmail", draft: updatedDraft });
+      onClose();
     } else if (payload.type === "calendar") {
       const updatedEvent: CalendarEventProposal = {
         ...payload.event,
@@ -104,6 +143,7 @@ export function ActionReviewModal({
       window.open(buildGoogleCalendarUrl(updatedEvent), "_blank");
       toast.success("Calendar hold created");
       onConfirm?.({ type: "calendar", event: updatedEvent });
+      onClose();
     } else if (payload.type === "task") {
       const updatedTask: TaskProposal = {
         ...payload.task,
@@ -115,19 +155,71 @@ export function ActionReviewModal({
       );
       toast.success("Task added");
       onConfirm?.({ type: "task", task: updatedTask });
+      onClose();
+    } else if (payload.type === "slack") {
+      setDispatching(true);
+      try {
+        const res = await slackConnector.dispatch({
+          type: "slack_message",
+          channel: slackChannel.trim(),
+          text: slackText.trim(),
+        });
+        if (res.ok) {
+          toast.success(`Message sent to ${slackChannel}!`);
+          onConfirm?.({ type: "slack", channel: slackChannel, text: slackText });
+          onClose();
+        } else {
+          toast.error(res.error || "Failed to dispatch Slack message");
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Slack dispatch error");
+      } finally {
+        setDispatching(false);
+      }
+    } else if (payload.type === "jira") {
+      setDispatching(true);
+      try {
+        const res = await jiraConnector.dispatch({
+          type: "jira_issue",
+          projectKey: jiraProject.trim(),
+          summary: jiraSummary.trim(),
+          description: jiraDescription.trim(),
+          issueType: payload.issueType || "Task",
+        });
+        if (res.ok) {
+          toast.success(`Jira issue ${res.externalId || "created"} successfully!`);
+          onConfirm?.({
+            type: "jira",
+            projectKey: jiraProject,
+            summary: jiraSummary,
+            description: jiraDescription,
+            issueType: payload.issueType,
+          });
+          onClose();
+        } else {
+          toast.error(res.error || "Failed to create Jira issue");
+        }
+      } catch (err) {
+        toast.error(err instanceof Error ? err.message : "Jira dispatch error");
+      } finally {
+        setDispatching(false);
+      }
     }
-    onClose();
   };
 
   const getActionTitle = () => {
     if (payload.type === "gmail") return "Review before sending";
     if (payload.type === "calendar") return "Review before scheduling";
+    if (payload.type === "slack") return "Review Slack message before sending";
+    if (payload.type === "jira") return "Review Jira issue before creating";
     return "Review task before dispatch";
   };
 
   const getConfirmButtonLabel = () => {
     if (payload.type === "gmail") return "Send draft";
     if (payload.type === "calendar") return "Create hold";
+    if (payload.type === "slack") return "Send Slack Message";
+    if (payload.type === "jira") return "Create Jira Issue";
     return "Create task";
   };
 
@@ -154,6 +246,8 @@ export function ActionReviewModal({
             {payload.type === "gmail" && <Mail className="size-4 text-accent" />}
             {payload.type === "calendar" && <Calendar className="size-4 text-accent" />}
             {payload.type === "task" && <CheckSquare className="size-4 text-accent" />}
+            {payload.type === "slack" && <MessageSquare className="size-4 text-accent" />}
+            {payload.type === "jira" && <CheckSquare className="size-4 text-accent" />}
             <h2
               id="review-modal-title"
               className="font-display text-lg tracking-tight text-fg"
@@ -310,6 +404,80 @@ export function ActionReviewModal({
               </div>
             </>
           )}
+
+          {payload.type === "slack" && (
+            <>
+              <div>
+                <label className="text-xs font-medium uppercase tracking-[0.14em] text-subtle">
+                  Slack Channel
+                </label>
+                <Input
+                  type="text"
+                  value={slackChannel}
+                  onChange={(e) => setSlackChannel(e.target.value)}
+                  placeholder="#general"
+                  className="mt-1 font-mono text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs font-medium uppercase tracking-[0.14em] text-subtle">
+                  Message Text
+                </label>
+                <Textarea
+                  value={slackText}
+                  onChange={(e) => setSlackText(e.target.value)}
+                  rows={6}
+                  placeholder="Slack message..."
+                  className="mt-1 font-sans text-sm leading-relaxed"
+                />
+              </div>
+            </>
+          )}
+
+          {payload.type === "jira" && (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium uppercase tracking-[0.14em] text-subtle">
+                    Project Key
+                  </label>
+                  <Input
+                    type="text"
+                    value={jiraProject}
+                    onChange={(e) => setJiraProject(e.target.value)}
+                    placeholder="PROJ"
+                    className="mt-1 font-mono text-sm uppercase"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium uppercase tracking-[0.14em] text-subtle">
+                    Summary
+                  </label>
+                  <Input
+                    type="text"
+                    value={jiraSummary}
+                    onChange={(e) => setJiraSummary(e.target.value)}
+                    placeholder="Issue summary"
+                    className="mt-1 font-sans text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium uppercase tracking-[0.14em] text-subtle">
+                  Description
+                </label>
+                <Textarea
+                  value={jiraDescription}
+                  onChange={(e) => setJiraDescription(e.target.value)}
+                  rows={6}
+                  placeholder="Ticket description..."
+                  className="mt-1 font-sans text-sm leading-relaxed"
+                />
+              </div>
+            </>
+          )}
         </div>
 
         {/* Footer: Trust Guarantee + Explicit Confirmation Actions */}
@@ -330,9 +498,10 @@ export function ActionReviewModal({
             <Button
               type="button"
               onClick={handleAction}
+              disabled={dispatching}
               className="bg-accent text-accent-fg hover:bg-accent/90 text-xs font-semibold"
             >
-              {getConfirmButtonLabel()}
+              {dispatching ? "Dispatching…" : getConfirmButtonLabel()}
             </Button>
           </div>
         </div>

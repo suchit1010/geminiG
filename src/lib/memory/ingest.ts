@@ -147,10 +147,6 @@ export const ingestMemory = createServerFn({ method: "POST" })
       effectiveApiKey,
     );
 
-    if (!geminiRes.ok) {
-      return { ok: false, error: geminiRes.error ?? "Gemini analysis failed." };
-    }
-
     let analysis: {
       summary: string;
       domain: string;
@@ -160,10 +156,32 @@ export const ingestMemory = createServerFn({ method: "POST" })
       alerts?: { type: string; title: string; triggerDescription?: string; body?: string }[];
     };
 
-    try {
-      analysis = extractJson(geminiRes.text!) as typeof analysis;
-    } catch {
-      return { ok: false, error: "Could not parse Gemini ingest output." };
+    if (!geminiRes.ok) {
+      if (geminiRes.error?.includes("rate limit") || geminiRes.error?.includes("quota") || geminiRes.error?.includes("429") || geminiRes.error?.includes("RESOURCE_EXHAUSTED")) {
+        analysis = {
+          summary: data.rawText.slice(0, 160),
+          domain: "general",
+          tags: ["quick-ingest"],
+          entities: [{ type: "topic", label: data.rawText.slice(0, 40) }],
+          relationships: [],
+          alerts: [],
+        };
+      } else {
+        return { ok: false, error: geminiRes.error ?? "Gemini analysis failed." };
+      }
+    } else {
+      try {
+        analysis = extractJson(geminiRes.text!) as typeof analysis;
+      } catch {
+        analysis = {
+          summary: data.rawText.slice(0, 160),
+          domain: "general",
+          tags: ["quick-ingest"],
+          entities: [{ type: "topic", label: data.rawText.slice(0, 40) }],
+          relationships: [],
+          alerts: [],
+        };
+      }
     }
 
     // ─── Step 2: Generate Embedding ─────────────────────

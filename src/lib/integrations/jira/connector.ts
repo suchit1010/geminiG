@@ -1,47 +1,101 @@
 /**
- * Jira Tool Connector Stub
+ * Jira Cloud Production Tool Connector
  *
- * Implements the ToolConnector plugin contract for Atlassian Jira Cloud:
- * - Assigned tickets & sprint status ingestion
- * - Issue creation & comment dispatch
+ * Implements the ToolConnector plugin contract with real Atlassian Jira Cloud REST API:
+ * - Ingests active sprint issues & tickets into Neural Memory
+ * - Dispatches created issues and tickets behind confirm-before-send gate
  */
 
 import type { ConnectorStatus, DispatchAction, IngestedContextItem, ToolConnector } from "../connector";
+import { useIntegrations } from "../store";
+import { createJiraIssueServerFn, fetchJiraIssuesServerFn, verifyJiraServerFn } from "./server";
 
 export class JiraConnector implements ToolConnector {
   id = "jira";
   name = "Jira Cloud";
-  description = "Ingest assigned sprint issues, blockers, and update ticket statuses.";
+  description = "Ingest assigned sprint issues, blockers, and dispatch ticket updates.";
   category = "project_management" as const;
   iconName = "CheckSquare";
-  status: ConnectorStatus = "disconnected";
   scopes = ["read:jira-work", "write:jira-work", "read:jira-user"];
 
-  async connect(): Promise<{ ok: boolean; authUrl?: string; error?: string }> {
-    this.status = "connected";
-    return {
-      ok: true,
-      authUrl: "https://auth.atlassian.com/authorize?audience=api.atlassian.com&client_id=demo",
-    };
+  get status(): ConnectorStatus {
+    const config = useIntegrations.getState().jira;
+    return config.enabled ? "connected" : "disconnected";
+  }
+
+  async connect(domain?: string, email?: string, apiToken?: string): Promise<{ ok: boolean; accountName?: string; error?: string }> {
+    const jiraState = useIntegrations.getState().jira;
+    const effectiveDomain = domain || jiraState.domain;
+    const effectiveEmail = email || jiraState.email;
+    const effectiveToken = apiToken || jiraState.apiToken;
+
+    if (!effectiveDomain || !effectiveEmail || !effectiveToken) {
+      return { ok: false, error: "Jira domain, email, and API token are required." };
+    }
+
+    const res = await verifyJiraServerFn({
+      data: {
+        domain: effectiveDomain,
+        email: effectiveEmail,
+        apiToken: effectiveToken,
+      },
+    });
+
+    if (res.ok) {
+      useIntegrations.getState().setJiraConfig({
+        enabled: true,
+        domain: effectiveDomain,
+        email: effectiveEmail,
+        apiToken: effectiveToken,
+        accountName: res.displayName || res.emailAddress,
+      });
+      return { ok: true, accountName: res.displayName || res.emailAddress };
+    }
+
+    return { ok: false, error: res.error };
   }
 
   async disconnect(): Promise<{ ok: boolean }> {
-    this.status = "disconnected";
+    useIntegrations.getState().disconnect("jira");
     return { ok: true };
   }
 
-  async ingest(since?: string): Promise<{ ok: boolean; items: IngestedContextItem[]; error?: string }> {
-    const items: IngestedContextItem[] = [
-      {
-        externalId: "jira_issue_PROJ-441",
-        sourceType: "jira",
-        title: "PROJ-441: Refactor auth token refresh loop",
-        body: "Assigned to You · Priority: High · Status: In Progress · Due: Tomorrow 18:00",
-        domain: "professional",
-        author: "Jira System",
-        timestamp: new Date().toISOString(),
+  async ingest(projectKey?: string, limit = 15): Promise<{ ok: boolean; items: IngestedContextItem[]; error?: string }> {
+    const jiraState = useIntegrations.getState().jira;
+    if (!jiraState.domain || !jiraState.email || !jiraState.apiToken) {
+      return { ok: false, items: [], error: "Jira credentials are required for syncing." };
+    }
+
+    const res = await fetchJiraIssuesServerFn({
+      data: {
+        domain: jiraState.domain,
+        email: jiraState.email,
+        apiToken: jiraState.apiToken,
+        projectKey: projectKey || jiraState.projectKey || undefined,
+        limit,
       },
-    ];
+    });
+
+    if (!res.ok || !res.issues) {
+      return { ok: false, items: [], error: res.error || "Failed to fetch Jira issues" };
+    }
+
+    const items: IngestedContextItem[] = res.issues.map((iss) => ({
+      externalId: iss.key,
+      sourceType: "jira",
+      title: `${iss.key}: ${iss.summary}`,
+      body: `Status: ${iss.status} · Priority: ${iss.priority}${iss.assignee ? ` · Assignee: ${iss.assignee}` : ""}\n\n${iss.description}`,
+      domain: "professional",
+      author: iss.assignee || "Jira",
+      url: iss.url,
+      timestamp: iss.updated,
+    }));
+
+    useIntegrations.getState().setJiraConfig({
+      lastSync: new Date().toISOString(),
+      syncCount: items.length,
+    });
+
     return { ok: true, items };
   }
 
@@ -49,6 +103,28 @@ export class JiraConnector implements ToolConnector {
     if (action.type !== "jira_issue") {
       return { ok: false, error: "Unsupported action type for Jira connector" };
     }
-    return { ok: true, externalId: `JIRA-${Math.floor(Math.random() * 900 + 100)}` };
+
+    const jiraState = useIntegrations.getState().jira;
+    if (!jiraState.domain || !jiraState.email || !jiraState.apiToken) {
+      return { ok: false, error: "Jira credentials not configured. Please enter your API token in Tools & APIs." };
+    }
+
+    const res = await createJiraIssueServerFn({
+      data: {
+        domain: jiraState.domain,
+        email: jiraState.email,
+        apiToken: jiraState.apiToken,
+        projectKey: action.projectKey || jiraState.projectKey || "PROJ",
+        summary: action.summary,
+        description: action.description,
+        issueType: action.issueType || "Task",
+      },
+    });
+
+    if (!res.ok || !res.key) {
+      return { ok: false, error: res.error || "Failed to create Jira issue" };
+    }
+
+    return { ok: true, externalId: res.key };
   }
 }

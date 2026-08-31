@@ -1,49 +1,89 @@
 /**
- * Slack Tool Connector Stub
+ * Slack Production Tool Connector
  *
- * Implements the ToolConnector plugin contract for Slack workspace sync:
- * - Channel & DM context ingestion
- * - Message dispatch behind confirm-before-send gate
+ * Implements the ToolConnector plugin contract with real Slack API communication:
+ * - Channel context ingestion into Neural Memory
+ * - Audited message dispatch behind the safety gate
  */
 
 import type { ConnectorStatus, DispatchAction, IngestedContextItem, ToolConnector } from "../connector";
+import { useIntegrations } from "../store";
+import { fetchSlackMessagesServerFn, postSlackMessageServerFn, verifySlackServerFn } from "./server";
 
 export class SlackConnector implements ToolConnector {
   id = "slack";
   name = "Slack";
-  description = "Sync unread DMs, threads, and dispatch drafted channel messages.";
+  description = "Sync unread messages, channel threads, and dispatch approved messages.";
   category = "communication" as const;
   iconName = "MessageSquare";
-  status: ConnectorStatus = "disconnected";
-  scopes = ["channels:read", "chat:write", "im:read", "im:write"];
+  scopes = ["channels:read", "chat:write", "im:read"];
 
-  async connect(): Promise<{ ok: boolean; authUrl?: string; error?: string }> {
-    // In demo / preview mode, marks connector active
-    this.status = "connected";
-    return {
-      ok: true,
-      authUrl: "https://slack.com/oauth/v2/authorize?client_id=demo&scope=channels:read,chat:write",
-    };
+  get status(): ConnectorStatus {
+    const config = useIntegrations.getState().slack;
+    return config.enabled ? "connected" : "disconnected";
+  }
+
+  async connect(token?: string, webhookUrl?: string): Promise<{ ok: boolean; teamName?: string; error?: string }> {
+    const slackState = useIntegrations.getState().slack;
+    const effectiveToken = token || slackState.token;
+    const effectiveWebhook = webhookUrl || slackState.webhookUrl;
+
+    const res = await verifySlackServerFn({
+      data: { token: effectiveToken, webhookUrl: effectiveWebhook },
+    });
+
+    if (res.ok) {
+      useIntegrations.getState().setSlackConfig({
+        enabled: true,
+        token: effectiveToken,
+        webhookUrl: effectiveWebhook,
+        teamName: res.teamName,
+        botUserId: res.botUserId,
+      });
+      return { ok: true, teamName: res.teamName };
+    }
+
+    return { ok: false, error: res.error };
   }
 
   async disconnect(): Promise<{ ok: boolean }> {
-    this.status = "disconnected";
+    useIntegrations.getState().disconnect("slack");
     return { ok: true };
   }
 
-  async ingest(since?: string): Promise<{ ok: boolean; items: IngestedContextItem[]; error?: string }> {
-    // Returns simulated active unread items to seed memory graph if connected
-    const items: IngestedContextItem[] = [
-      {
-        externalId: "slack_msg_101",
-        sourceType: "slack",
-        title: "#core-eng: Deployment blocker discussion",
-        body: "Sarah: We need to freeze merges until the database migration is verified on staging.",
-        domain: "professional",
-        author: "Sarah",
-        timestamp: new Date().toISOString(),
+  async ingest(channelNameOrId?: string, limit = 15): Promise<{ ok: boolean; items: IngestedContextItem[]; error?: string }> {
+    const slackState = useIntegrations.getState().slack;
+    if (!slackState.token) {
+      return { ok: false, items: [], error: "Slack Bot Token (xoxb-...) is required for message syncing." };
+    }
+
+    const res = await fetchSlackMessagesServerFn({
+      data: {
+        token: slackState.token,
+        channelNameOrId: channelNameOrId || slackState.defaultChannel || "#general",
+        limit,
       },
-    ];
+    });
+
+    if (!res.ok || !res.messages) {
+      return { ok: false, items: [], error: res.error || "Failed to fetch Slack messages" };
+    }
+
+    const items: IngestedContextItem[] = res.messages.map((m) => ({
+      externalId: m.id,
+      sourceType: "slack",
+      title: `${m.channel}: Message from ${m.user}`,
+      body: m.text,
+      domain: "professional",
+      author: m.user,
+      timestamp: m.timestamp,
+    }));
+
+    useIntegrations.getState().setSlackConfig({
+      lastSync: new Date().toISOString(),
+      syncCount: items.length,
+    });
+
     return { ok: true, items };
   }
 
@@ -51,7 +91,21 @@ export class SlackConnector implements ToolConnector {
     if (action.type !== "slack_message") {
       return { ok: false, error: "Unsupported action type for Slack connector" };
     }
-    // Simulate dispatching message to channel
-    return { ok: true, externalId: `slack_ts_${Date.now()}` };
+
+    const slackState = useIntegrations.getState().slack;
+    const res = await postSlackMessageServerFn({
+      data: {
+        token: slackState.token || undefined,
+        webhookUrl: slackState.webhookUrl || undefined,
+        channel: action.channel || slackState.defaultChannel || "#general",
+        text: action.text,
+      },
+    });
+
+    if (!res.ok) {
+      return { ok: false, error: res.error || "Failed to dispatch message to Slack" };
+    }
+
+    return { ok: true, externalId: res.ts || `slack_${Date.now()}` };
   }
 }

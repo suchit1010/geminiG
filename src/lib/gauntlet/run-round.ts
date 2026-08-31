@@ -141,6 +141,9 @@ export const runGauntletRound = createServerFn({ method: "POST" })
       });
     }
 
+    // Small pacing delay to avoid spiking free-tier RPM rate limits
+    await new Promise((r) => setTimeout(r, 400));
+
     // ─── STAGE 2: BUILDER AGENTS ────────────────────────────────
     traces.push({
       id: `t-${ts}-builder-start`,
@@ -177,6 +180,9 @@ export const runGauntletRound = createServerFn({ method: "POST" })
         detail: `${a.kind} · ${a.body.trim().split(/\s+/).length} words · ${a.referenced_entities?.length || 0} entity refs`,
       });
     }
+
+    // Small pacing delay before Critic
+    await new Promise((r) => setTimeout(r, 400));
 
     // ─── STAGE 3: ADVERSARIAL CRITIC ─────────────────────────────
     traces.push({
