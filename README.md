@@ -2,36 +2,35 @@
 
 > **Built for the Google "All Things Agentic" Hackathon**  
 > **Track:** The Taskmaster  
-> **Core Engine:** Google Gemini 3.7 / 3.5 Flash · Gemini Live API & Speech Transcriber · Gemini Embeddings (`text-embedding-004`) · Deterministic Zero-LLM Action Safety Gate · Real-Time Web Audio Visualizer · TanStack Start & React 19 · Cloud Firestore & Neon Postgres
+> **Core Engine:** Google Gemini 3.7 / 3.5 Flash · Gemini Live & Speech Transcriber · Gemini Embeddings (`text-embedding-004`) · Deterministic Zero-LLM Action Safety Gate · Real-Time Web Audio Visualizer · TanStack Start & React 19 · Cloud Firestore & Firebase Auth
 
 ---
 
-## 🎯 The Problem & Our Pitch: The Action Safety Barrier in Autonomous AI Agents
+## 🎯 The Problem & Our Solution: The Action Safety Barrier in Autonomous Agents
 
-In late August 2026, the AI industry watched high-profile personal agents (like Noah Shinn’s $2.5B *Instinct AI*) face immediate real-world backlash after unvetted actions: autonomous agents sending emails on users' behalf without confirmation, hallucinating schedule holds, and retaining sensitive communication data.
+Autonomous agents face a fundamental challenge in production: **The Action Hallucination Problem**.
 
-**The fundamental bottleneck for autonomous agents is not writing capability — it is the Action Hallucination Problem.**
-
-When you give an LLM direct API access to Gmail or Google Calendar, a single hallucinated date, incorrect dollar amount, or invented recipient creates irreversible operational chaos.
+When giving an LLM direct API access to Gmail, Calendar, or enterprise systems, a single hallucinated date, incorrect dollar amount, or invented recipient creates operational chaos.
 
 **Gauntlet solves this with a multi-layered autonomous architecture:**
 1. **Probabilistic Multi-Agent Synthesis:** A 6-stage multi-agent pipeline powered by **Gemini 3.7 / 3.5 Flash** (Lead Decomposer, Parallel Builders, and Double-Blind Critic) continuously plans, synthesizes, and self-corrects deliverables until reaching a strict quality score (Threshold $\ge$ 82%).
-2. **Deterministic Zero-LLM Action Safety Gate:** A mathematical code-level grounding verifier that algorithmically guarantees 100% of referenced entities (dates, amounts, owners) exist verbatim in the source notes before assembling **1-Click Google Workspace Dispatches** (Gmail Drafts, Calendar Holds, Google Tasks).
+2. **Deterministic Zero-LLM Action Safety Gate:** A mathematical code-level grounding verifier that algorithmically guarantees 100% of referenced entities (dates, amounts, owners) exist verbatim in source notes before assembling **1-Click Google Workspace Dispatches** (Gmail Drafts, Calendar Holds, Docs/Sheets, Google Tasks).
 3. **Bi-Directional Voice Co-Pilot & Web Audio Visualizer:** Real-time speech-to-text dictation and interactive glowing audio visualizer powered by Web Audio API (`AnalyserNode`), with instant executive status dispatching.
 4. **Persistent Neural Memory & Knowledge Graph:** Hybrid Cloud Firestore + Vector Embeddings mapping people, projects, events, and deadlines with proactive 15-minute pre-meeting briefings.
+5. **Stage & Approve Workflow:** Autonomous agents read, plan, and stage actions as interactive visual cards (RFC 2822 Gmail drafts, RFC 3339 Calendar holds with Meet links) requiring 1-click human verification before execution.
 
 ---
 
-## 📋 Hackathon Technical Audit & Checklist
+## 📋 Hackathon Technical Audit & Capabilities Matrix
 
-| Requirement / Area | Implementation in Gauntlet | Status |
+| Area | Implementation in Gauntlet | Status |
 |---|---|:---:|
-| **Google AI Models** | **Primary:** `gemini-3.7-flash` & `gemini-3.5-flash` for high-throughput structured JSON reasoning, multi-turn critic loops, multimodal image analysis, and `text-embedding-004` for dense semantic vector recall. Includes automated fallback chain (`gemini-3.7-flash` → `gemini-3.5-flash` → `gemini-2.5-flash`). | ✅ **Verified** |
+| **Google AI Models** | **Primary:** `gemini-3.7-flash` & `gemini-3.5-flash` for high-throughput structured JSON reasoning, multi-turn critic loops, multimodal image/audio analysis, and `text-embedding-004` for dense semantic vector recall. Includes automated fallback chain (`gemini-3.7-flash` → `gemini-3.5-flash` → `gemini-2.5-flash`). | ✅ **Verified** |
 | **Voice & Audio Experience** | **Gemini Speech Transcriber & Web Audio Visualizer:** Native Web Audio API FFT analysis with real-time RMS intensity pulsating orb, radial frequency spectrum bars, and bi-directional voice co-pilot with automated `"Give me all work status"` voice synthesis. | ✅ **Verified** |
-| **Agent Architecture** | High-concurrency **TypeScript & TanStack Start multi-agent orchestrator** (`src/lib/gauntlet/agents/`) with Lead, Builder, and Critic agent roles, accompanied by Python ADK specifications (`gauntlet/`). | ✅ **Verified** |
+| **Multi-Agent Orchestrator** | High-concurrency **TypeScript & TanStack Start multi-agent orchestrator** (`src/lib/gauntlet/agents/`) with Lead, Builder, and Critic agent roles, accompanied by Python ADK specifications (`gauntlet/`). | ✅ **Verified** |
 | **Safety & Grounding Gate** | **Zero-LLM Deterministic Grounding Verifier** (`src/lib/gauntlet/safety-gate.ts` & `gauntlet/agents/safety_gate.py`). Tests every extracted fact against verbatim substring source spans before dispatch. | ✅ **Verified** |
-| **Cloud Services & Database** | **Google Cloud Firestore** persistent cloud database for multi-session sync, knowledge graph entities, and mission state, plus Google Cloud Run container deployment. | ✅ **Verified** |
-| **Workspace Integration** | **Google Workspace Connectors** for Gmail Drafts (RFC 2822 MIME format), Google Calendar Holds (RFC 3339 datetime), and Google Tasks with confirm-before-send gate. | ✅ **Verified** |
+| **Cloud Database & Auth** | **Google Cloud Firestore** for persistent multi-device memory sync, knowledge graph entities, and mission logs, paired with **Firebase Authentication** and local Guest Mode fallback. | ✅ **Verified** |
+| **Google Workspace Connectors** | **Stage & Approve Connectors** for Gmail Drafts (RFC 2822 MIME), Google Calendar Holds (RFC 3339 with Meet links), Google Docs & Sheets exports, and Google Tasks. | ✅ **Verified** |
 | **Track Category** | **The Taskmaster** — Converts unstructured entropy (notes, whiteboard photos, voice dumps, Slack threads) into verified, executed operational deliverables. | ✅ **Verified** |
 
 ---
@@ -62,8 +61,9 @@ flowchart TD
     subgraph DispatchLayer["4. Workspace Execution & Human Confirmation"]
         ConfirmGate["Action Review & Safety Gate UI\n• Grounding Audit Badge & Verbatim Proofs"]
         Gmail["Gmail Drafts (RFC 2822 MIME)"]
-        Calendar["Google Calendar Holds (RFC 3339)"]
-        Tasks["Google Tasks"]
+        Calendar["Google Calendar Holds (RFC 3339 + Meet)"]
+        DocsSheets["Google Docs & Sheets Exports"]
+        Tasks["Google Tasks Checklists"]
         StatusReport["Executive Work Status Dispatcher\n(Live Aggregation & Voice Playback)"]
     end
 
@@ -83,6 +83,7 @@ flowchart TD
 
     ConfirmGate --> Gmail
     ConfirmGate --> Calendar
+    ConfirmGate --> DocsSheets
     ConfirmGate --> Tasks
     ConfirmGate --> StatusReport
 ```
@@ -96,9 +97,10 @@ flowchart TD
 - **Stage 2 — Builder Agents (`gemini-3.7-flash`):** Parallel workers produce finished, copy-paste-ready deliverables (emails, briefing memos, task breakdowns, talk tracks) while binding every fact into `referenced_entities[]`.
 - **Stage 3 — Adversarial Critic (`gemini-3.7-flash`):** Evaluates deliverables with double-blind objectivity against the quality bar. If the score is under 82, it feeds structured feedback back to the builders in an autonomous self-correction loop (up to 3 rounds).
 - **Stage 4 — Deterministic Action Safety Gate:** A zero-LLM, code-level verification engine that checks every referenced entity against verbatim substring spans in the source notes. Hallucinated numbers, dates, or names are caught and blocked before reaching any external tool.
-- **Stage 5 — Google Workspace Dispatch:** Assembles grounded outputs into minimal-scope API payloads:
+- **Stage 5 — Google Workspace Action Staging:** Assembles grounded outputs into minimal-scope API payloads:
   - **Gmail Drafts:** (`gmail.compose`) Formats compliant RFC 2822 MIME payloads so emails wait safely in your Drafts folder rather than sending unreviewed.
-  - **Google Calendar Holds:** (`calendar.events`) Prepares start/end timestamps for hold blocks.
+  - **Google Calendar Holds:** (`calendar.events`) Prepares start/end timestamps for hold blocks with auto-generated agendas and Meet video links.
+  - **Google Docs & Sheets:** Exports finalized briefs, meeting minutes, expense tables, and structured data.
   - **Google Tasks:** Assembles structured checklist items with due dates.
 - **Stage 6 — Action Confirm Gate UI:** Real-time Mission Board displaying Grounding Audit badges, verbatim source highlights, and 1-click execution triggers.
 
@@ -125,15 +127,18 @@ flowchart TD
 gemini/
 ├── src/                          # Full-Stack Web Application (TanStack Start & React 19)
 │   ├── components/gauntlet/      # Mission Board, Knowledge Graph, Ingestion, & Modals
-│   │   ├── action-dispatch-gate.tsx  # Workspace dispatch triggers & payloads
-│   │   ├── action-review-modal.tsx   # Detailed modal with verbatim grounding proofs
-│   │   ├── alert-panel.tsx           # Proactive intelligence alerts & meeting briefs
-│   │   ├── audio-visualizer.tsx      # Real-time Web Audio API glowing pulse & spectrum visualizer
-│   │   ├── knowledge-graph-view.tsx  # Interactive Canvas knowledge graph visualizer
-│   │   ├── memory-sidebar.tsx        # Continuous micro-dump ingestion stream
-│   │   ├── mission-board.tsx         # Live multi-agent mission control & loops
-│   │   ├── voice-live-modal.tsx      # Live Voice Studio & bi-directional co-pilot
-│   │   └── landing.tsx               # Main hero, starters, & unified memory stream
+│   │   ├── action-dispatch-gate.tsx     # Workspace dispatch triggers & payloads
+│   │   ├── action-review-modal.tsx      # Detailed modal with verbatim grounding proofs
+│   │   ├── alert-panel.tsx              # Proactive intelligence alerts & meeting briefs
+│   │   ├── api-key-modal.tsx            # 5-point key diagnostic & format verification modal
+│   │   ├── audio-visualizer.tsx         # Real-time Web Audio API glowing pulse & spectrum visualizer
+│   │   ├── firebase-auth-button.tsx     # Google Sign-In, Cloud Sync & Guest Mode switcher
+│   │   ├── knowledge-graph-view.tsx     # Interactive Canvas knowledge graph visualizer
+│   │   ├── memory-sidebar.tsx           # Continuous micro-dump ingestion stream
+│   │   ├── mission-board.tsx            # Live multi-agent mission control & loops
+│   │   ├── unauthorized-domain-modal.tsx # Firebase domain whitelisting helper
+│   │   ├── voice-live-modal.tsx         # Live Voice Studio & bi-directional co-pilot
+│   │   └── landing.tsx                  # Main hero, starters, & unified memory stream
 │   ├── lib/
 │   │   ├── gauntlet/             # Agent orchestrators, Gemini SDK client, types
 │   │   │   ├── agents/           # TypeScript Lead, Builder, and Critic agents
@@ -141,10 +146,12 @@ gemini/
 │   │   │   ├── run-round.ts      # Multi-round autonomous execution loop
 │   │   │   ├── safety-gate.ts    # Deterministic zero-LLM grounding auditor
 │   │   │   ├── status-dispatcher.ts # Executive work status metrics compiler
-│   │   │   └── use-speech-transcriber.ts # Live Web Speech API & audio stream hook
+│   │   │   ├── use-speech-transcriber.ts # Live Web Speech API & audio stream hook
+│   │   │   └── verify-key.ts     # Client & server Gemini API key verifier
 │   │   ├── memory/               # Neural memory layer, embeddings, store & graph
-│   │   ├── firebase.ts           # Cloud Firestore database client
-│   │   └── integrations/         # Google Workspace, Slack, & Jira connectors
+│   │   ├── firebase.ts           # Cloud Firestore & Auth SDK client
+│   │   ├── firestore-sync.ts     # Bidirectional Firestore mission & memory sync
+│   │   └── integrations/         # Google Workspace (Gmail, Calendar, Tasks) connectors
 │   └── routes/                   # TanStack Router file-based routes
 │
 ├── gauntlet/                     # Python ADK Specifications & Test Suite
@@ -154,6 +161,8 @@ gemini/
 │   ├── orchestrator.py           # Multi-agent loop controller
 │   └── main.py                   # ADK Verification test suite
 │
+├── firestore.rules               # Firestore security rules with user-level isolation
+├── firebase-blueprint.json       # Database schema blueprint
 ├── Dockerfile                    # Google Cloud Run production container configuration
 └── package.json                  # Dependencies (React 19, TanStack Start, Tailwind CSS)
 ```
@@ -229,7 +238,7 @@ Test 2 Result: {
 
 #### Production API Key Parameter Testing & Diagnostic Suite
 Gauntlet implements a full 5-point parameter testing harness (`verifyGeminiKeyWithDiagnostics`) that validates:
-1. **Syntax & Prefix Enforcement:** Verifies standard AI Studio keys (`AIzaSy...`) and blocks unsupported Vertex tokens (`AQ.`).
+1. **Syntax & Key Format Support:** Validates Google AI Studio keys (including `AIzaSy...` and modern project keys `AQ...`).
 2. **REST Handshake & Model Latency:** Probes `gemini-3.5-flash` / `gemini-2.5-flash` with sub-1000ms latency benchmarking.
 3. **Structured JSON Schema Output:** Verifies that Gemini produces deterministic typed JSON compliant with OpenAPI schema specifications.
 4. **Multi-Agent Pipeline Capacity:** Tests complex multi-role system instructions across Lead, Builder, and Critic prompts.
@@ -251,7 +260,8 @@ npm run build
 ## 🔒 Security, Privacy & Grounding Guarantees
 
 1. **Zero-LLM Grounding Audit:** LLMs are prone to subtle hallucinations in critical numbers, dates, and recipients. Gauntlet’s Safety Gate uses deterministic string algorithms to guarantee that every entity sent to external tools exists verbatim in your source material.
-2. **Confirm-Before-Send Model:** Autonomous agents should prepare work, not execute destructive actions silently. All external dispatches (Gmail, Calendar, Tasks) require 1-click human confirmation with highlighted verification proofs.
+2. **Confirm-Before-Send Model:** Autonomous agents should prepare work, not execute destructive actions silently. All external dispatches (Gmail, Calendar, Docs/Sheets, Tasks) require 1-click human confirmation with highlighted verification proofs.
 3. **Drafts Over Direct Sends:** Gmail integration outputs RFC 2822 MIME drafts to `gmail.compose` rather than executing immediate outbound sends.
-4. **Cloud Firestore Security:** User state and memory records are segregated and persisted securely via Google Cloud Firestore rules.
+4. **Cloud Firestore Security & Isolation:** User state and memory records are segregated and persisted securely via Google Cloud Firestore security rules with per-user isolation.
+5. **Guest Mode Fallback:** Secure local storage operation is maintained even if custom hosting domains have not yet completed OAuth origin whitelisting.
 
