@@ -57,6 +57,8 @@ export function useSpeechTranscriber(options: UseSpeechTranscriberOptions = {}) 
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [recordingSeconds, setRecordingSeconds] = useState(0);
   const [statusMessage, setStatusMessage] = useState<string>("");
+  const [mediaStream, setMediaStream] = useState<MediaStream | null>(null);
+  const [analyser, setAnalyser] = useState<AnalyserNode | null>(null);
 
   const recognitionRef = useRef<IWindowSpeechRecognition | null>(null);
   const isListeningRef = useRef(false);
@@ -82,7 +84,64 @@ export function useSpeechTranscriber(options: UseSpeechTranscriberOptions = {}) 
     isListeningRef.current = isListening;
   }, [isListening]);
 
-  const stopAllRef = useRef(stopAll);
+  const stopAll = useCallback(() => {
+    isListeningRef.current = false;
+    setIsListening(false);
+    setIsRecordingAudio(false);
+    setStatusMessage("Microphone stopped.");
+
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
+
+    if (recognitionRef.current) {
+      try {
+        recognitionRef.current.stop();
+      } catch {
+        // pass
+      }
+      recognitionRef.current = null;
+    }
+
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+      try {
+        mediaRecorderRef.current.stop();
+      } catch {
+        // pass
+      }
+      mediaRecorderRef.current = null;
+    }
+
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+      mediaStreamRef.current = null;
+    }
+    setMediaStream(null);
+
+    if (audioContextRef.current) {
+      void audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    analyserRef.current = null;
+    setAnalyser(null);
+
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+
+    setVolumeLevel(0);
+    setAudioBars([8, 8, 8, 8, 8, 8, 8, 8]);
+    setInterimText("");
+  }, []);
+
+  const stopAllRef = useRef<() => void>(stopAll);
   useEffect(() => {
     stopAllRef.current = stopAll;
   }, [stopAll]);
@@ -90,7 +149,7 @@ export function useSpeechTranscriber(options: UseSpeechTranscriberOptions = {}) 
   // Clean up on unmount
   useEffect(() => {
     return () => {
-      stopAllRef.current();
+      stopAllRef.current?.();
     };
   }, []);
 
@@ -132,16 +191,18 @@ export function useSpeechTranscriber(options: UseSpeechTranscriberOptions = {}) 
         },
       });
       mediaStreamRef.current = stream;
+      setMediaStream(stream);
 
       // Setup Web Audio Analyser
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const ctx = new AudioCtx();
       audioContextRef.current = ctx;
       const source = ctx.createMediaStreamSource(stream);
-      const analyser = ctx.createAnalyser();
-      analyser.fftSize = 64;
-      source.connect(analyser);
-      analyserRef.current = analyser;
+      const analyserNode = ctx.createAnalyser();
+      analyserNode.fftSize = 64;
+      source.connect(analyserNode);
+      analyserRef.current = analyserNode;
+      setAnalyser(analyserNode);
       animationFrameRef.current = requestAnimationFrame(updateVisualizer);
 
       // Setup MediaRecorder to capture audio file
@@ -273,60 +334,6 @@ export function useSpeechTranscriber(options: UseSpeechTranscriberOptions = {}) 
     }
   }, [autoRestart, lang, onTranscriptChange, onTurnComplete, updateVisualizer]);
 
-  const stopAll = useCallback(() => {
-    isListeningRef.current = false;
-    setIsListening(false);
-    setIsRecordingAudio(false);
-    setStatusMessage("Microphone stopped.");
-
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = null;
-    }
-
-    if (timerIntervalRef.current) {
-      clearInterval(timerIntervalRef.current);
-      timerIntervalRef.current = null;
-    }
-
-    if (recognitionRef.current) {
-      try {
-        recognitionRef.current.stop();
-      } catch {
-        // pass
-      }
-      recognitionRef.current = null;
-    }
-
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
-      try {
-        mediaRecorderRef.current.stop();
-      } catch {
-        // pass
-      }
-      mediaRecorderRef.current = null;
-    }
-
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((t) => t.stop());
-      mediaStreamRef.current = null;
-    }
-
-    if (audioContextRef.current) {
-      void audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-
-    if (animationFrameRef.current) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = null;
-    }
-
-    setVolumeLevel(0);
-    setAudioBars([8, 8, 8, 8, 8, 8, 8, 8]);
-    setInterimText("");
-  }, []);
-
   const clearTranscript = useCallback(() => {
     setFullTranscript("");
     setInterimText("");
@@ -351,8 +358,8 @@ export function useSpeechTranscriber(options: UseSpeechTranscriberOptions = {}) 
     audioUrl,
     recordingSeconds,
     statusMessage,
-    mediaStream: mediaStreamRef.current,
-    analyser: analyserRef.current,
+    mediaStream,
+    analyser,
     startListening,
     stopListening: stopAll,
     clearTranscript,
