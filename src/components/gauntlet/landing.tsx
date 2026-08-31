@@ -90,12 +90,10 @@ export function Landing() {
             size="sm"
             variant="secondary"
             onClick={() => setApiKeyOpen(true)}
-            className={`flex items-center gap-1.5 border bg-surface-2 hover:bg-surface ${
-              apiKey ? "border-pass/30 text-fg" : "border-warn/40 text-warn"
-            }`}
+            className="flex items-center gap-1.5 border border-border bg-surface-2 hover:bg-surface text-fg"
           >
-            <Key className={`size-3.5 ${apiKey ? "text-pass" : "text-warn"}`} />
-            <span className="font-mono text-xs">{apiKey ? "API Key Active" : "Set API Key"}</span>
+            <Key className={`size-3.5 ${apiKey ? "text-pass" : "text-accent"}`} />
+            <span className="font-mono text-xs">{apiKey ? "API Key Active" : "Gemini API Key"}</span>
           </Button>
           <Button
             size="sm"
@@ -128,7 +126,7 @@ export function Landing() {
         <section className="grid gap-10 pb-16 pt-6 md:grid-cols-[1.2fr_0.8fr] md:items-end md:pb-24 md:pt-10">
           <div>
             <p className="stagger-in mb-5 text-xs font-medium uppercase tracking-[0.18em] text-muted">
-              A multi-agent work engine · Google Gemini
+              A multi-agent work engine · Google Gemini 3.5 Flash
             </p>
             <h1
               className="stagger-in font-display text-3xl font-medium leading-[1.08] tracking-tight text-fg"
@@ -162,8 +160,10 @@ export function Landing() {
                   const sample = installSample();
                   void navigate({ to: "/mission/$id", params: { id: sample.id } });
                 }}
+                className="border-pass/40 bg-surface-2 hover:bg-surface text-fg"
               >
-                Open a recorded loop
+                <Sparkles className="size-4 text-pass" />
+                Live Demo: Finished 3-Day Work Week (Score 91)
               </Button>
             </div>
           </div>

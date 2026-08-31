@@ -2,30 +2,34 @@
 
 > **Built for the Google "All Things Agentic" Hackathon**  
 > **Track:** The Taskmaster  
-> **Core Stack:** Google Gemini 3.5 Flash · Gemini Embeddings (`text-embedding-004`) · Google Agent Development Kit (ADK) · Google Cloud Run · TanStack Start · React 19 · Neon Postgres / PGLite
+> **Core Engine:** Google Gemini 3.5 Flash (`gemini-3.5-flash`) · Gemini Embeddings (`text-embedding-004`) · Multi-Agent Architecture · Deterministic Action Safety Gate · TanStack Start & React 19 · Neon Postgres / PGLite
 
 ---
 
-## 🎯 What is Gauntlet?
+## 🎯 The Problem & Our Pitch: The Safety Barrier in Autonomous Agents
 
-Most AI assistants are chat interfaces that output generic outlines and conversational advice, still forcing you to do the actual drafting, entity tracking, verification, and tool dispatch yourself.
+In late August 2026, the AI industry watched high-profile personal agents (like Noah Shinn’s $2.5B *Instinct AI*) face immediate real-world backlash after unvetted actions: autonomous agents sending emails on users' behalf without confirmation, hallucinating schedule holds, and retaining sensitive communication data.
 
-**Gauntlet is an autonomous multi-agent work compiler and proactive personal orchestration layer.** 
+**The fundamental bottleneck for autonomous agents is not writing capability — it is the Action Hallucination Problem.**
 
-1. **The Work Compiler:** Dump raw operational entropy (messy Slack threads, Jira tickets, chaotic meeting notes, or photos of whiteboards/sticky notes) and walk away. Three specialized Gemini 3.5 Flash agents plan, build, and adversarial-criticize the deliverables until they pass a strict quality threshold (Score ≥ 82). A **Deterministic Action Safety Gate** validates 100% factual grounding before assembling **1-Click Google Workspace Dispatches** (Gmail Drafts, Calendar Holds, Google Tasks).
-2. **The Neural Memory Engine (Loki):** Ingest micro-dumps continuously throughout your day. Gauntlet auto-extracts entities, computes semantic vector embeddings, builds an evolving **Relationship Knowledge Graph** (people, projects, events), and proactively synthesizes **Time-Triggered Meeting Briefs** and pre-drafted follow-ups with a human-in-the-loop confirmation gate.
+When you give an LLM direct API access to Gmail or Google Calendar, a single hallucinated date, incorrect number, or invented recipient creates irreversible operational chaos.
+
+**Gauntlet solves this with a dual-system architecture:**
+1. **Probabilistic Multi-Agent Synthesis:** Three specialized **Gemini 3.5 Flash** agents (Lead, Builders, Critic) plan, build, and adversarial-criticize the deliverables in an autonomous self-correcting loop until reaching a strict quality threshold (Score ≥ 82).
+2. **Deterministic Zero-LLM Action Safety Gate:** A code-level grounding auditor that algorithmically proves 100% of referenced entities (dates, amounts, owners) exist verbatim in the source notes before assembling **1-Click Google Workspace Dispatches** (Gmail Drafts, Calendar Holds, Google Tasks).
 
 ---
 
-## 📋 Hackathon Compliance Audit
+## 📋 Hackathon Technical Audit
 
-| Requirement | Implementation in Gauntlet | Status |
+| Area | Implementation in Gauntlet | Status |
 |---|---|:---:|
-| **Gemini 3.5+ Model** | Powered by **Gemini 3.5 Flash** (`gemini-3.5-flash`) for sub-second structured agent reasoning, multimodal image parsing, and `text-embedding-004` for semantic memory retrieval. | ✅ **Compliant** |
-| **Google Agent Framework** | Full **Google Agent Development Kit (ADK)** package in [`gauntlet/`](gauntlet/) implementing [`contracts.py`](gauntlet/schemas/contracts.py), [`lead_agent.py`](gauntlet/agents/lead_agent.py), [`builder_agent.py`](gauntlet/agents/builder_agent.py), [`critic_agent.py`](gauntlet/agents/critic_agent.py), and [`safety_gate.py`](gauntlet/agents/safety_gate.py). | ✅ **Compliant** |
-| **Google Cloud Service** | Native **Google Cloud Run** containerized deployment with production [`Dockerfile`](Dockerfile) listening on `0.0.0.0:8080`. | ✅ **Compliant** |
-| **Google Workspace Tools** | Direct **Google Workspace OAuth2 API Connectors** for Gmail Drafts (`gmail.compose`), Calendar Holds (`calendar.events`), and Google Tasks. | ✅ **Compliant** |
-| **Track Category** | **The Taskmaster** — Automates full multi-step operational lifecycles from disorganized dump to verified tool execution without manual hand-holding. | ✅ **Compliant** |
+| **Gemini 3.5+ Model** | **Primary:** `gemini-3.5-flash` for sub-second structured JSON reasoning, multimodal document analysis, and `text-embedding-004` for dense semantic memory vector recall. Includes automated fallback chain (`gemini-3.5-flash` → `gemini-2.5-flash` → `gemini-2.0-flash`). | ✅ **Verified** |
+| **Agent Architecture** | High-concurrency **TypeScript & TanStack Start multi-agent orchestrator** (`src/lib/gauntlet/agents/`) with Lead, Builder, and Critic agent roles, accompanied by Python contract schemas & safety gate validators (`gauntlet/`). | ✅ **Verified** |
+| **Safety & Grounding Gate** | **Zero-LLM Deterministic Grounding Verifier** (`src/lib/gauntlet/safety-gate.ts` & `gauntlet/agents/safety_gate.py`). Tests every extracted fact against verbatim substring source spans before dispatch. | ✅ **Verified** |
+| **Workspace Integration** | **Google Workspace OAuth2 Connectors** for Gmail Drafts (RFC 2822 MIME format), Google Calendar Holds (RFC 3339 datetime), and Google Tasks with confirm-before-send gate. | ✅ **Verified** |
+| **Deployment** | Live full-stack serverless deployment on **Vercel** + containerized production **Google Cloud Run** `Dockerfile` (listening on `0.0.0.0:8080`). | ✅ **Verified** |
+| **Track Category** | **The Taskmaster** — Converts unstructured entropy (notes, whiteboard photos, Slack threads) into verified, executed operational deliverables. | ✅ **Verified** |
 
 ---
 
@@ -33,44 +37,48 @@ Most AI assistants are chat interfaces that output generic outlines and conversa
 
 ```mermaid
 flowchart TD
-    subgraph Ingestion["1. Continuous Ingestion & Multimodal Input"]
-        RawDump["Raw Messy Dump\n(Notes, Slack chaos, Whiteboard photos)"]
-        MicroDump["Continuous Micro-Dumps\n(Sidebar Stream)"]
+    subgraph Ingestion["1. Multimodal & Continuous Ingestion"]
+        RawDump["Raw Operational Dump\n(Messy notes, Slack chaos, Whiteboard photo)"]
+        MicroDump["Continuous Micro-Dumps\n(Sidebar Life + Work Stream)"]
     end
 
-    subgraph Compiler["2. Multi-Agent Work Compiler (Gemini 3.5 Flash)"]
-        Stage1["Stage 1: Lead Agent\n• Decomposes entropy into 2-4 sub-jobs\n• Extracts entities with verbatim source spans"]
-        Stage2["Stage 2: Builder Agents\n• Generates complete artifacts (emails, briefs, checklists)\n• Binds facts into referenced_entities[]"]
-        Stage3["Stage 3: Adversarial Critic\n• Double-blind scoring (0-100)\n• Auto-triggers re-loop if score < 82"]
-        Stage4["Stage 4: Deterministic Action Safety Gate\n• Zero-LLM code-based grounding audit\n• Blocks hallucinated dates, amounts & names"]
+    subgraph MultiAgentCompiler["2. Multi-Agent Work Compiler (Gemini 3.5 Flash)"]
+        Lead["Stage 1: Lead Agent\n• Decomposes into 2-4 sub-jobs\n• Extracts entities with verbatim source spans"]
+        Builders["Stage 2: Builder Agents\n• Parallel artifact generation (emails, briefs, checklists)\n• Emits referenced_entities[]"]
+        Critic["Stage 3: Adversarial Critic\n• Double-blind scoring (0-100)\n• Auto self-correcting loop if score < 82"]
+        SafetyGate["Stage 4: Deterministic Action Safety Gate\n• Zero-LLM code-based substring verification\n• 100% Grounding Guarantee — Blocks Hallucinations"]
     end
 
-    subgraph NeuralMemory["3. Neural Memory & Knowledge Graph (Loki Engine)"]
-        Embeddings["Gemini text-embedding-004\nSemantic Vector Index"]
-        KG["Relationship Knowledge Graph\n(Nodes: People/Projects/Events | Edges: Relations)"]
-        ProactiveAlerts["Proactive Intelligence Queue\n(Time-Triggered Meeting Briefs & Reminders)"]
+    subgraph LokiEngine["3. Neural Memory & Relationship Graph"]
+        Embed["Gemini text-embedding-004\nSemantic Vector Search"]
+        Graph["Relationship Knowledge Graph\n(People, Projects, Events & Edges)"]
+        Alerts["Proactive Intelligence Queue\n(Meeting Briefs 15m prior & Deadline Trackers)"]
     end
 
-    subgraph Dispatch["4. Tool Execution & Confirmation"]
+    subgraph DispatchLayer["4. Workspace Execution & Human Confirmation"]
         ConfirmGate["Action Review & Safety Gate UI\n• Grounding Audit Badge & Verbatim Proofs"]
-        GoogleWork["Google Workspace APIs\n• Gmail Drafts (MIME format)\n• Calendar Holds\n• Google Tasks"]
-        Connectors["External Connectors\n• Slack Webhooks\n• Jira Issues"]
+        Gmail["Gmail Drafts (RFC 2822 MIME)"]
+        Calendar["Google Calendar Holds (RFC 3339)"]
+        Tasks["Google Tasks"]
+        Connectors["Slack & Jira Connectors"]
     end
 
-    RawDump --> Stage1
-    Stage1 --> Stage2
-    Stage2 --> Stage3
-    Stage3 -- "Score < 82 (Iterate)" --> Stage2
-    Stage3 -- "Score >= 82 (Pass)" --> Stage4
-    Stage4 --> ConfirmGate
+    RawDump --> Lead
+    Lead --> Builders
+    Builders --> Critic
+    Critic -- "Score < 82 (Iterate)" --> Builders
+    Critic -- "Score >= 82 (Pass)" --> SafetyGate
+    SafetyGate --> ConfirmGate
 
-    MicroDump --> Embeddings
-    MicroDump --> KG
-    KG --> ProactiveAlerts
-    ProactiveAlerts --> ConfirmGate
-    Embeddings -. "Semantic Recall" .-> Stage1
+    MicroDump --> Embed
+    MicroDump --> Graph
+    Graph --> Alerts
+    Alerts --> ConfirmGate
+    Embed -. "Semantic Context" .-> Lead
 
-    ConfirmGate --> GoogleWork
+    ConfirmGate --> Gmail
+    ConfirmGate --> Calendar
+    ConfirmGate --> Tasks
     ConfirmGate --> Connectors
 ```
 
@@ -79,26 +87,25 @@ flowchart TD
 ## ⚡ Core Capabilities
 
 ### 🥊 1. The Autonomous 6-Stage Multi-Agent Pipeline
-- **Stage 1 — Lead Agent (`gemini-3.5-flash`):** Reads the raw entropy, establishes the operational objective, defines the quality bar, breaks the work into 2–4 plan items, and extracts verifiable entity spans (`recipient`, `datetime`, `amount`, `action_item`).
-- **Stage 2 — Builder Agents (`gemini-3.5-flash`):** Parallelized builders author finished, copy-paste-ready artifacts (emails, briefing memos, task breakdowns, talk tracks) while binding every asserted fact to explicit `referenced_entities[]`.
-- **Stage 3 — Adversarial Critic (`gemini-3.5-flash`):** Inspects deliverables double-blind against the quality bar. If the score is under 82, it feeds actionable feedback back to the builders in an autonomous self-correction loop (up to 3 rounds).
-- **Stage 4 — Deterministic Action Safety Gate:** A zero-LLM, code-level verification engine that checks every referenced entity against verbatim substring spans in the source notes. Hallucinated numbers, dates, or names are caught and blocked before reaching any API.
-- **Stage 5 — Action Dispatch Assembler:** Packages grounded outputs into minimal-scope Google Workspace API payloads (RFC 2822 MIME Gmail drafts, Google Calendar RFC 3339 event holds, Google Tasks).
-- **Stage 6 — Human-in-the-Loop Confirmation Gate:** Interactive Mission Board showing grounding badges, quality score breakdown, verbatim source highlights, and 1-click execution triggers.
+- **Stage 1 — Lead Agent (`gemini-3.5-flash`):** Analyzes raw entropy, sets the operational objective, defines testable quality bar criteria, breaks the mission into 2–4 plan items, and extracts verifiable entity spans (`recipient`, `datetime`, `amount`, `action_item`).
+- **Stage 2 — Builder Agents (`gemini-3.5-flash`):** Parallel workers produce finished, copy-paste-ready deliverables (emails, briefing memos, task breakdowns, talk tracks) while binding every fact into `referenced_entities[]`.
+- **Stage 3 — Adversarial Critic (`gemini-3.5-flash`):** Evaluates deliverables with double-blind objectivity against the quality bar. If the score is under 82, it feeds structured feedback back to the builders in an autonomous self-correction loop (up to 3 rounds).
+- **Stage 4 — Deterministic Action Safety Gate:** A zero-LLM, code-level verification engine that checks every referenced entity against verbatim substring spans in the source notes. Hallucinated numbers, dates, or names are caught and blocked before reaching any external tool.
+- **Stage 5 — Google Workspace Dispatch:** Assembles grounded outputs into minimal-scope API payloads:
+  - **Gmail Drafts:** (`gmail.compose`) Formats compliant RFC 2822 MIME payloads so emails wait in your Drafts folder rather than sending unreviewed.
+  - **Google Calendar Holds:** (`calendar.events`) Prepares start/end timestamps for hold blocks.
+  - **Google Tasks:** Assembles structured checklist items with due dates.
+- **Stage 6 — Action Confirm Gate UI:** Real-time Mission Board displaying Grounding Audit badges, verbatim source highlights, and 1-click execution triggers.
 
-### 🧠 2. Neural Memory & Relationship Knowledge Graph (Loki)
-- **Continuous Micro-Dump Ingestion:** Persistent sidebar allows capturing thoughts, meeting snippets, and action items throughout the day.
+### 🧠 2. Neural Memory & Relationship Knowledge Graph (Loki Engine)
+- **Continuous Micro-Dump Ingestion:** Persistent sidebar allows capturing fleeting thoughts, meeting snippets, and action items throughout the day.
 - **Semantic Recall (`text-embedding-004`):** Hybrid memory store with Neon Postgres / PGLite vector embeddings and IndexedDB caching for contextual recall.
 - **Interactive Knowledge Graph:** Canvas-rendered visualizer mapping people, projects, events, and topics with dynamic edge weights and mention tracking.
-- **Unified Life Stream:** Filter effortlessly between `All`, `Professional`, and `Personal` domains.
+- **Unified Life Stream:** Toggle seamlessly between `All`, `Professional`, and `Personal` domains.
 
 ### 🔮 3. Proactive Intelligence & Briefings
 - **Time-Triggered Meeting Briefs:** Automatically compiles attendee history, past discussion topics, talking points, and pre-drafted follow-up emails 15 minutes before calendar events.
-- **Deadline & Slippage Radar:** Identifies commitments and creates proactive alerts for upcoming deadlines.
-
-### 🔌 4. Extensible Tool Integrations
-- **Google Workspace (OAuth2):** Native support for Gmail Drafts, Calendar holds, and Google Tasks.
-- **Connector Plugin Architecture:** Clean TypeScript & Python interfaces for connecting Slack Webhooks and Jira Cloud issues.
+- **Deadline Radar:** Identifies commitments across previous notes and creates proactive alerts for upcoming deadlines.
 
 ---
 
@@ -106,13 +113,6 @@ flowchart TD
 
 ```
 gemini/
-├── gauntlet/                     # Python Google ADK (Agent Development Kit) Suite
-│   ├── agents/                   # Lead, Builder, Critic & Safety Gate agents
-│   ├── schemas/                  # Pydantic contracts & structured response schemas
-│   ├── tools/                    # Gmail, Calendar, and Tasks tool payloads
-│   ├── orchestrator.py           # Multi-agent loop controller
-│   └── main.py                   # ADK Verification test suite
-│
 ├── src/                          # Full-Stack Web Application (TanStack Start & React 19)
 │   ├── components/gauntlet/      # Mission Board, Knowledge Graph, Ingestion, & Modals
 │   │   ├── action-dispatch-gate.tsx  # Workspace dispatch triggers & payloads
@@ -132,13 +132,16 @@ gemini/
 │   │   └── integrations/         # Google Workspace, Slack, & Jira connectors
 │   └── routes/                   # TanStack Router file-based routes
 │
+├── gauntlet/                     # Python ADK Specifications & Test Suite
+│   ├── agents/                   # Lead, Builder, Critic & Safety Gate reference agents
+│   ├── schemas/                  # Pydantic contracts & structured response schemas
+│   ├── tools/                    # Gmail, Calendar, and Tasks tool payloads
+│   ├── orchestrator.py           # Multi-agent loop controller
+│   └── main.py                   # ADK Verification test suite
+│
 ├── migrations/                   # SQL migrations for Postgres (Neon / PGLite)
 │   ├── 0001_initial.sql          # Core application schema
 │   └── auth/0002_memory.sql      # Memory entries, KG nodes, edges, & alerts
-│
-├── scripts/                      # Platform verification & build scripts
-│   ├── browser-smoke.mjs         # Headless Chromium desktop/mobile smoke test
-│   └── migrate.mjs               # Postgres migration runner
 │
 ├── Dockerfile                    # Google Cloud Run production container configuration
 └── package.json                  # Dependencies (React 19, TanStack Start, Tailwind v4)
@@ -146,20 +149,20 @@ gemini/
 
 ---
 
-## 🚀 Spin-up & Quickstart Guide
+## 🚀 Instant Demo & Quickstart Guide
 
-### Prerequisites
-- **Node.js 22+**
-- **Google Gemini API Key** ([Get a key here](https://aistudio.google.com/))
-- *(Optional)* Python 3.11+ for running the Python ADK test suite
+### 🌟 Instant Live Demo (Zero Setup Required)
+When you open the application, **a pre-compiled sample mission ("Work + Life Ops: 3-Day Week") is immediately loaded**:
+- Click **"Live Demo: Finished 3-Day Work Week (Score 91)"** on the landing page to view completed deliverables, adversarial critic scores, and the verified safety gate.
+- The **Loki Neural Memory Stream**, **Knowledge Graph Canvas**, and **Proactive Meeting Briefs** are pre-populated with live interactive data.
 
 ---
 
-### Option 1: Run Full App Locally (Vite Dev Server)
+### Running Locally
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/suchit1010/gemini.git
+git clone https://github.com/suchit1010/geminiG.git
 cd gemini
 
 # 2. Install dependencies
@@ -174,20 +177,18 @@ $env:GEMINI_API_KEY="your-gemini-api-key"
 # 4. Start the application
 npm run dev
 ```
-Navigate to **`http://localhost:8080`** in your browser.
+Open **`http://localhost:8080`** in your browser.
 
 ---
 
-### Option 2: Deploy to Google Cloud Run (Single Command)
-
-Gauntlet is packaged with a production-ready `Dockerfile` optimized for Google Cloud Run:
+### Deploying to Google Cloud Run
 
 ```bash
 # 1. Authenticate with Google Cloud
 gcloud auth login
 gcloud config set project YOUR_GCP_PROJECT_ID
 
-# 2. Deploy to Cloud Run
+# 2. Deploy container to Cloud Run
 gcloud run deploy gauntlet \
   --source . \
   --platform managed \
@@ -198,26 +199,7 @@ gcloud run deploy gauntlet \
 
 ---
 
-### Option 3: Run Python Google ADK Test Suite
-
-```bash
-# Run the Python ADK pipeline tests and safety gate validator
-python gauntlet/main.py
-```
-
-Expected output:
-```text
-Running Gauntlet ADK Pipeline Verification Suite...
-✅ TEST 1 PASSED: Grounded entities passed with 100% score.
-✅ TEST 2 PASSED: Hallucinated entities successfully caught and blocked.
-✅ TEST 3 PASSED: Minimal-scope Gmail draft MIME payload generated.
-
-🎉 ALL 3 ADK STAGES VERIFIED.
-```
-
----
-
-## 🧪 Automated Testing & Verification
+## 🧪 Automated Testing & Safety Gate Verification
 
 ### 1. Action Safety Gate Unit Tests (TypeScript)
 Validates zero-LLM deterministic grounding against hallucinated numbers, dates, and ungrounded entities:
@@ -229,14 +211,30 @@ npx tsx src/lib/gauntlet/safety-gate.test.ts
 Output:
 ```text
 === Gauntlet v2 Action Safety Gate Verification ===
+Test 1 Result: {
+  passed: true,
+  score: 100,
+  verified_entities: [ 'Priya', 'Thursday 09:30 standup', '4.2%' ],
+  unverified_entities: [],
+  audit_summary: 'Grounding verified: All 3 entities and 3 action references traced back to raw source notes.'
+}
 ✅ TEST 1 PASSED: Grounded entities passed with 100% score.
+
+Test 2 Result: {
+  passed: false,
+  score: 33,
+  verified_entities: [ 'Priya' ],
+  unverified_entities: [ 'Tuesday 3pm', '$50,000' ],
+  audit_summary: 'Safety Gate Flagged 2 ungrounded entities not found in original notes: Tuesday 3pm, $50,000'
+}
 ✅ TEST 2 PASSED: Hallucinated entities successfully caught and blocked.
+
 🎉 ALL SAFETY GATE SUITES VERIFIED.
 ```
 
-### 2. Full Test Suite & Invariants
+### 2. Python ADK Test Suite
 ```bash
-npm test
+python gauntlet/main.py
 ```
 
 ### 3. Type Checking & Production Build
@@ -249,15 +247,6 @@ npm run build
 
 ## 🔒 Security, Privacy & Grounding Guarantees
 
-1. **Zero-LLM Grounding Audit:** LLMs are great at drafting but prone to subtle hallucinations in critical numbers or dates. Gauntlet’s Safety Gate uses deterministic string algorithms to guarantee that every entity sent to external tools exists verbatim in your source material.
+1. **Zero-LLM Grounding Audit:** LLMs are prone to subtle hallucinations in critical numbers or dates. Gauntlet’s Safety Gate uses deterministic string algorithms to guarantee that every entity sent to external tools exists verbatim in your source material.
 2. **Confirm-Before-Send Model:** Autonomous agents should prepare work, not execute destructive actions silently. All external dispatches (Gmail, Calendar, Tasks) require 1-click human confirmation with highlighted verification proofs.
-3. **Data Isolation:** Memory entries, knowledge graph nodes, and integration tokens are strictly scoped by user ID with secure database constraints.
-
----
-
-## 👥 Built for Google "All Things Agentic" Hackathon
-
-- **Category:** The Taskmaster
-- **Model:** Google Gemini 3.5 Flash & `text-embedding-004`
-- **Frameworks:** Google Agent Development Kit (ADK) & TanStack Start / React 19
-- **Deployment:** Google Cloud Run
+3. **Drafts Over Direct Sends:** Gmail integration outputs RFC 2822 MIME drafts to `gmail.compose` rather than executing immediate outbound sends.

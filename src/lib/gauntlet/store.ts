@@ -27,12 +27,14 @@ type GauntletState = {
   deleteMission: (id: string) => void;
 };
 
+const DEFAULT_SAMPLE = sampleWorkWeek();
+
 export const useGauntlet = create<GauntletState>()(
   persist(
     (set, get) => ({
       hasHydrated: false,
       apiKey: "",
-      missions: {},
+      missions: { [SAMPLE_ID]: DEFAULT_SAMPLE },
       setHasHydrated: (v) => set({ hasHydrated: v }),
       setApiKey: (key) => set({ apiKey: key.trim() }),
       installSample: () => {
@@ -160,6 +162,9 @@ export const useGauntlet = create<GauntletState>()(
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);
+        if (state && Object.keys(state.missions).length === 0) {
+          state.installSample();
+        }
       },
     },
   ),

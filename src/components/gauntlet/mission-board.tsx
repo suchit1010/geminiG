@@ -24,6 +24,7 @@ import { IntegrationsPanel } from "@/components/gauntlet/integrations-panel";
 import { ServerProxyModal } from "@/components/gauntlet/server-proxy-modal";
 import { ActionDispatchGate } from "@/components/gauntlet/action-dispatch-gate";
 import { runGauntletRound } from "@/lib/gauntlet/run-round";
+import { SAMPLE_ID } from "@/lib/gauntlet/sample";
 import { useGauntlet } from "@/lib/gauntlet/store";
 import type { Artifact, ArtifactKind, Mission } from "@/lib/gauntlet/types";
 import { ingestMemory, useMemory } from "@/lib/memory";
@@ -69,12 +70,16 @@ export function MissionBoard({ id }: { id: string }) {
   }, []);
 
   useEffect(() => {
-    if (!hasHydrated || !mission) return;
-    if (mission.status === "draft" && mission.round === 0 && !mission.error) {
+    if (!hasHydrated) return;
+    if (!mission && id === SAMPLE_ID) {
+      installSample();
+      return;
+    }
+    if (mission?.status === "draft" && mission.round === 0 && !mission.error) {
       void runLoop(mission);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hasHydrated, mission?.id]);
+  }, [hasHydrated, mission?.id, id]);
 
   useEffect(() => {
     if (mission?.status !== "running") {
