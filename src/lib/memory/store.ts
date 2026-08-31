@@ -49,6 +49,7 @@ type MemoryState = {
 
   // Alert management
   setAlerts: (alerts: Alert[]) => void;
+  addAlert: (alert: Alert) => void;
   dismissAlert: (id: string) => void;
   markAlertActed: (id: string) => void;
 };
@@ -281,6 +282,14 @@ export const useMemory = create<MemoryState>()(
           pendingAlerts: alerts,
           unreadAlertCount: alerts.filter((a) => a.status === "pending").length,
         }),
+
+      addAlert: (alert) => {
+        const alerts = [alert, ...get().pendingAlerts];
+        set({
+          pendingAlerts: alerts,
+          unreadAlertCount: alerts.filter((a) => a.status === "pending").length,
+        });
+      },
 
       dismissAlert: (id) => {
         const alerts = get().pendingAlerts.map((a) =>

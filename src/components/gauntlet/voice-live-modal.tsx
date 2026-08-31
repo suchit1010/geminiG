@@ -341,7 +341,7 @@ export function VoiceLiveModal({ open, onClose, onApplyTranscript }: VoiceLiveMo
             ) : (
               <Button
                 onClick={stopSession}
-                variant="destructive"
+                variant="danger"
                 className="gap-2 font-medium px-4 py-2"
               >
                 <Square className="size-4" />
@@ -353,7 +353,7 @@ export function VoiceLiveModal({ open, onClose, onApplyTranscript }: VoiceLiveMo
               <div className="flex items-center gap-2">
                 <Button
                   size="icon"
-                  variant="outline"
+                  variant="secondary"
                   onClick={() => setIsMuted(!isMuted)}
                   className={`size-9 border-white/10 ${
                     isMuted ? "bg-red-500/20 text-red-400 border-red-500/30" : "bg-white/5"
@@ -364,7 +364,7 @@ export function VoiceLiveModal({ open, onClose, onApplyTranscript }: VoiceLiveMo
                 </Button>
                 <Button
                   size="icon"
-                  variant="outline"
+                  variant="secondary"
                   onClick={() => setIsAudioOutputMuted(!isAudioOutputMuted)}
                   className={`size-9 border-white/10 ${
                     isAudioOutputMuted ? "bg-amber-500/20 text-amber-400 border-amber-500/30" : "bg-white/5"

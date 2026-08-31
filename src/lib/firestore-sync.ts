@@ -8,6 +8,9 @@ import {
   where,
   orderBy,
   onSnapshot,
+  type QueryDocumentSnapshot,
+  type QuerySnapshot,
+  type FirestoreError,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import type { Mission } from "./gauntlet/types";
@@ -25,23 +28,21 @@ export async function syncMissionToFirestore(mission: Mission, userId: string): 
     const serialized = {
       ...mission,
       userId,
-      updatedAt: mission.updatedAt || Date.now(),
-      // Ensure attachments do not store heavy raw base64 in Firestore doc
+      // Strip local large base64 from Firestore to prevent payload limits
       attachments: mission.attachments?.map((a) => ({
-        id: a.id,
-        mimeType: a.mimeType,
+        ...a,
         data: "",
-        preview: a.preview?.slice(0, 200) || "",
       })) || [],
+      syncedAt: Date.now(),
     };
     await setDoc(docRef, serialized, { merge: true });
   } catch (error) {
-    console.error("Firestore sync error:", error);
+    console.error("Failed to sync mission to Firestore:", error);
   }
 }
 
 /**
- * Delete a mission from Cloud Firestore
+ * Delete mission from Cloud Firestore
  */
 export async function deleteMissionFromFirestore(missionId: string, userId: string): Promise<void> {
   if (!userId || userId === "dev-user") return;
@@ -49,12 +50,12 @@ export async function deleteMissionFromFirestore(missionId: string, userId: stri
     const docRef = doc(db, MISSIONS_COLLECTION, missionId);
     await deleteDoc(docRef);
   } catch (error) {
-    console.error("Firestore delete error:", error);
+    console.error("Failed to delete mission from Firestore:", error);
   }
 }
 
 /**
- * Load all missions for the current user
+ * Load all missions for a specific authenticated user
  */
 export async function loadUserMissions(userId: string): Promise<Mission[]> {
   if (!userId || userId === "dev-user") return [];
@@ -64,9 +65,9 @@ export async function loadUserMissions(userId: string): Promise<Mission[]> {
       where("userId", "==", userId),
       orderBy("updatedAt", "desc")
     );
-    const snap = await getDocs(q);
+    const snap: QuerySnapshot = await getDocs(q);
     const items: Mission[] = [];
-    snap.forEach((d) => {
+    snap.forEach((d: QueryDocumentSnapshot) => {
       items.push(d.data() as Mission);
     });
     return items;
@@ -89,14 +90,14 @@ export function subscribeUserMissions(
       collection(db, MISSIONS_COLLECTION),
       where("userId", "==", userId)
     );
-    return onSnapshot(q, (snapshot) => {
+    return onSnapshot(q, (snapshot: QuerySnapshot) => {
       const missions: Mission[] = [];
-      snapshot.forEach((d) => {
+      snapshot.forEach((d: QueryDocumentSnapshot) => {
         missions.push(d.data() as Mission);
       });
       missions.sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
       onUpdate(missions);
-    }, (error) => {
+    }, (error: FirestoreError) => {
       console.warn("Firestore snapshot error:", error);
     });
   } catch (err) {

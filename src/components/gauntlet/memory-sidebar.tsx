@@ -24,6 +24,7 @@ export function MemorySidebar({ className = "" }: { className?: string }) {
   const setDomainFilter = useMemory((s) => s.setDomainFilter);
   const setIngesting = useMemory((s) => s.setIngesting);
   const addEntry = useMemory((s) => s.addEntry);
+  const addAlert = useMemory((s) => s.addAlert);
   const upsertNodes = useMemory((s) => s.upsertNodes);
   const upsertEdges = useMemory((s) => s.upsertEdges);
 
@@ -70,6 +71,23 @@ export function MemorySidebar({ className = "" }: { className?: string }) {
 
       if (r.extractedNodes.length) upsertNodes(r.extractedNodes);
       if (r.extractedEdges.length) upsertEdges(r.extractedEdges);
+
+      // Auto-trigger proactive alert if an event/deadline entity was detected
+      const eventNode = r.extractedNodes.find((n) => n.nodeType === "event");
+      if (eventNode || r.alertsCreated > 0) {
+        addAlert({
+          id: `alert_${Date.now()}`,
+          userId: "dev-user",
+          triggerAt: new Date(Date.now() + 1000 * 60 * 15).toISOString(),
+          alertType: "meeting_brief",
+          title: `Upcoming Brief: ${eventNode ? eventNode.label : r.summary.slice(0, 50)}`,
+          body: `Proactive brief auto-compiled for ${r.domain} context. Review talking points & follow-up draft.`,
+          contextNodeIds: r.extractedNodes.map((n) => n.id),
+          relatedMissionId: null,
+          status: "pending",
+          createdAt: new Date().toISOString(),
+        });
+      }
 
       setInput("");
       toast.success(`Memory indexed in ${r.domain} context.`);
