@@ -18,6 +18,7 @@ import { FirebaseAuthButton } from "@/components/gauntlet/firebase-auth-button";
 import { GeminiStar } from "@/components/gauntlet/gemini-logo";
 import { useAuthUser } from "@/lib/auth/use-firebase-auth";
 import { subscribeUserMissions, syncMissionToFirestore } from "@/lib/firestore-sync";
+import { checkServerKeyStatusServerFn } from "@/lib/gauntlet/verify-key";
 import { useSpotlight } from "@/lib/use-spotlight";
 import type { Attachment } from "@/lib/gauntlet/types";
 
@@ -56,9 +57,26 @@ export function Landing() {
   const [apiKeyOpen, setApiKeyOpen] = useState(false);
   const [voiceLiveOpen, setVoiceLiveOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [hasServerKey, setHasServerKey] = useState(false);
 
   const { user } = useAuthUser();
   const spotlight = useSpotlight();
+
+  useEffect(() => {
+    let mounted = true;
+    checkServerKeyStatusServerFn()
+      .then((res) => {
+        if (mounted) setHasServerKey(res.hasServerKey);
+      })
+      .catch(() => {
+        // pass
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const hasKey = Boolean(apiKey.trim() || hasServerKey);
 
   useEffect(() => {
     if (useGauntlet.persist.hasHydrated()) {
@@ -97,6 +115,13 @@ export function Landing() {
   }
 
   function launch(dump: string, goal: string, attachments: Attachment[]) {
+    if (!hasKey) {
+      toast.error("Gemini API key is required to launch missions.", {
+        description: "Please set and test your Gemini key first.",
+      });
+      setApiKeyOpen(true);
+      return;
+    }
     const mission = createMission({ dump, goal, attachments });
     if (user) {
       void syncMissionToFirestore(mission, user.uid);
@@ -108,6 +133,7 @@ export function Landing() {
     });
     void navigate({ to: "/mission/$id", params: { id: mission.id } });
   }
+
 
   return (
     <div className="min-h-dvh bg-bg text-fg">

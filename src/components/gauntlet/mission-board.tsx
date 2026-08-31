@@ -29,6 +29,7 @@ import { runGauntletRound } from "@/lib/gauntlet/run-round";
 import { SAMPLE_ID } from "@/lib/gauntlet/sample";
 import { useGauntlet } from "@/lib/gauntlet/store";
 import type { Artifact, ArtifactKind, Mission } from "@/lib/gauntlet/types";
+import { checkServerKeyStatusServerFn } from "@/lib/gauntlet/verify-key";
 import { ingestMemory, useMemory } from "@/lib/memory";
 import { useSpotlight } from "@/lib/use-spotlight";
 
@@ -65,8 +66,23 @@ export function MissionBoard({ id }: { id: string }) {
   const [proxyModalOpen, setProxyModalOpen] = useState(false);
   const [integrationsOpen, setIntegrationsOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [hasServerKey, setHasServerKey] = useState(false);
   const runningLock = useRef(new Set<string>());
   const spotlight = useSpotlight();
+
+  useEffect(() => {
+    let mounted = true;
+    checkServerKeyStatusServerFn()
+      .then((res) => {
+        if (mounted) setHasServerKey(res.hasServerKey);
+      })
+      .catch(() => {
+        // pass
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     if (useGauntlet.persist.hasHydrated()) {
@@ -114,6 +130,20 @@ export function MissionBoard({ id }: { id: string }) {
       toast.error("This mission hit the round cap.");
       return;
     }
+
+    const hasAnyKey = Boolean(apiKey.trim() || hasServerKey);
+    if (!hasAnyKey) {
+      patchMission(current.id, {
+        status: "draft",
+        error: "Gemini API key required. Please enter and test your API key to run this mission.",
+      });
+      setApiKeyModalOpen(true);
+      toast.error("Gemini API key is required to execute the agent pipeline.", {
+        description: "Please provide a valid Gemini key.",
+      });
+      return;
+    }
+
     runningLock.current.add(current.id);
     patchMission(current.id, { status: "running", error: null });
     const nextRound = current.round + 1;

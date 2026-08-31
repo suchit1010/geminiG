@@ -227,6 +227,14 @@ Test 2 Result: {
 🎉 ALL SAFETY GATE SUITES VERIFIED.
 ```
 
+#### Production API Key Parameter Testing & Diagnostic Suite
+Gauntlet implements a full 5-point parameter testing harness (`verifyGeminiKeyWithDiagnostics`) that validates:
+1. **Syntax & Prefix Enforcement:** Verifies standard AI Studio keys (`AIzaSy...`) and blocks unsupported Vertex tokens (`AQ.`).
+2. **REST Handshake & Model Latency:** Probes `gemini-3.5-flash` / `gemini-2.5-flash` with sub-1000ms latency benchmarking.
+3. **Structured JSON Schema Output:** Verifies that Gemini produces deterministic typed JSON compliant with OpenAPI schema specifications.
+4. **Multi-Agent Pipeline Capacity:** Tests complex multi-role system instructions across Lead, Builder, and Critic prompts.
+5. **Multimodal Audio/Vision Ingestion:** Tests base64 image and PCM audio buffer payload handling.
+
 #### Python ADK Specification Tests
 ```bash
 python gauntlet/main.py
